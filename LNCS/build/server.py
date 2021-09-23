@@ -14,7 +14,7 @@ class newServer:
     CHECK_CONNECTION_MESSAGE  = "[CHECK_CONNECTION]"
     TEXT_MESSAGE = "[TEXT]"
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    listAllIndex = ["[CURRENT_SESSION_KEY]", "[CURRENT_CLIENT_LOG]", "[CURRENT_SERVER_LOG]", "[CURRENT_SYSTEM_STATUS]"]
+    listAllIndex = ["[CURRENT_SESSION_KEY]", "[CURRENT_CLIENT_LOG]", "[CURRENT_SERVER_LOG]", "[CURRENT_SYSTEM_STATUS]", "[SERVER_PORT]", "[SYSTEM_IPV4]"]
     dataValues = "data_values.txt"
     log = ""
 
@@ -27,6 +27,7 @@ class newServer:
 
     def __init__(self, __PORT__ = 55000):
         self.PORT = __PORT__
+        self.ADDR = (self.SERVER, __PORT__)
         cmd('cls')
 
     def __rewriteLine__(self, file, lineKey, newLine):

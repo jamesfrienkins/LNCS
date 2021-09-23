@@ -13,7 +13,7 @@ class newClient:
     TEXT_MESSAGE = "[TEXT]"
     client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     SERVER = socket.gethostbyname(socket.gethostname())
-    listAllIndex = ["[CURRENT_SESSION_KEY]", "[CURRENT_CLIENT_LOG]", "[CURRENT_SERVER_LOG]", "[CURRENT_SYSTEM_STATUS]"]
+    listAllIndex = ["[CURRENT_SESSION_KEY]", "[CURRENT_CLIENT_LOG]", "[CURRENT_SERVER_LOG]", "[CURRENT_SYSTEM_STATUS]", "[SERVER_PORT]", "[SYSTEM_IPV4]"]
     dataValues = "data_values.txt"
     PORT = 55000
     ADDR = (SERVER, PORT)
@@ -42,8 +42,7 @@ class newClient:
         self.PORT = __PORT__
         self.SERVER = __SERVER__
 
-        ADDR = (self.SERVER, self.PORT)
-        self.ADDR = ADDR
+        self.ADDR = (self.SERVER, self.PORT)
 
         self.log = open(f"log-client-{__SERVER__}.{__PORT__}.txt", 'a+')
 
