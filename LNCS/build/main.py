@@ -21,7 +21,14 @@ def rewriteLine(file, lineKey, newLine):
 def setUpCurrentSystemStatus():
     cmd('cls')
 
-    currentFile = open(dataValues, "r")
+    try:
+        currentFile = open(dataValues, "r")
+    except:
+        currentFile = open(dataValues, "a+")
+        for keyName in listAllIndex:
+            currentFile.write(keyName + ' <-> \n')
+    currentFile.flush()
+
     listAllLines = currentFile.readlines()
     line = listAllLines[3].split(' <-> ')
     systemStatus = line[1].strip()
