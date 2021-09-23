@@ -1,13 +1,22 @@
 import time
-import server as srvr
-import client as clnt
 import string
 import random
+import socket
+import server as srvr
+import client as clnt
 from os import system as cmd
 
-listAllIndex = ["[CURRENT_SESSION_KEY]", "[CURRENT_CLIENT_LOG]", "[CURRENT_SERVER_LOG]", "[CURRENT_SYSTEM_STATUS]"]
+currentSystemIPV4 = socket.gethostbyname(socket.gethostname())
+listAllIndex = ["[CURRENT_SESSION_KEY]", "[CURRENT_CLIENT_LOG]", "[CURRENT_SERVER_LOG]", "[CURRENT_SYSTEM_STATUS]", "[SERVER_PORT]", "[SYSTEM_IPV4]"]
 dataValues = "data_values.txt"
 
+def checkIPV4(ip):
+    try:
+        socket.inet_aton(ip)
+        return True
+    except socket.error:
+        return False
+    
 def rewriteLine(file, lineKey, newLine):
     currentFile = open(file, "r")
     listAllLines = currentFile.readlines()
@@ -58,26 +67,38 @@ def setUpCurrentSystemStatus():
                 cmd('cls')
 
         rewriteLine(dataValues, listAllIndex[3], systemStatus)
-
+        setUpKey = True
+        
+        while setUpKey:
+            cmd('cls')
+            print("Set up your system...\n\n")
+            print(f"Current system ipv4: {currentSystemIPV4}")
+            if systemStatus == 'client':
+                IPV4, PORT = input("Print server addres IPV4, PORT(55000 ≈ 70000) in format (IPV4:PORT): ").split(':')
+                if checkIPV4(IPV4) and int(PORT) >= 55000 and int(PORT) <= 70000:
+                    setUpKey = False
+            elif systemStatus == 'admin':
+                PORT = input("Print PORT (55000 ≈ 70000): ")
+                IPV4 = currentSystemIPV4
+                
+                if int(PORT) >= 55000 aand int(PORT) <= 70000:
+                    setUpKey = False
+        
+        rewriteLine(dataValues, listAllIndex[4], PORT)
+        rewriteLine(dataValues, listAllIndex[5], IPV4)
+        
+        print(f"Your system is running on {IPV4}:{PORT}")
+            
     return systemStatus
 
 def systemStatusAdmin():
     server = srvr.newServer()
-
     server.start()
-    time.sleep(30)
 
 def systemStatusClient():
     client = clnt.newClient()
-
     client.start()
     client.connect()
-
-    client.send('Hello world!')
-    time.sleep(5)
-
-    client.send('Hello Volodya!')
-    time.sleep(5)
 
 def main():
     systemStatus = setUpCurrentSystemStatus()
