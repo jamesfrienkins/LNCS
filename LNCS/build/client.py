@@ -7,13 +7,15 @@ from datetime import datetime
 class newClient:
     HEADER = 64
     FORMAT = 'utf-8'
+    SYSTEM_NAME = ""
     DISCONNECT_MESSAGE = "[DISCONNECT]"
     CHECK_CONNECTION_MESSAGE  = "[CHECK_CONNECTION]"
+    GET_CLIENT_NAME = "[GET_CLIENT_NAME]"
     CMD_MESSAGE = "[CMD]"
     TEXT_MESSAGE = "[TEXT]"
     client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     SERVER = socket.gethostbyname(socket.gethostname())
-    listAllIndex = ["[CURRENT_SESSION_KEY]", "[CURRENT_CLIENT_LOG]", "[CURRENT_SERVER_LOG]", "[CURRENT_SYSTEM_STATUS]", "[SERVER_PORT]", "[SYSTEM_IPV4]"]
+    listAllIndex = ["[CURRENT_SESSION_KEY]", "[CURRENT_CLIENT_LOG]", "[CURRENT_SERVER_LOG]", "[CURRENT_SYSTEM_STATUS]", "[SERVER_PORT]", "[SYSTEM_IPV4], [SYSTEM_NAME]"]
     dataValues = "data_values.txt"
     PORT = 55000
     ADDR = (SERVER, PORT)
@@ -38,9 +40,10 @@ class newClient:
         currentFile.writelines(listAllLines)
         currentFile.close()
     
-    def start(self, __SERVER__ = socket.gethostbyname(socket.gethostname()), __PORT__ = 55000):
+    def start(self, __SERVER__ = socket.gethostbyname(socket.gethostname()), __PORT__ = 55000, __SYSTEM_NAME__ = ""):
         self.PORT = __PORT__
         self.SERVER = __SERVER__
+        self.SYSTEM_NAME = __SYSTEM_NAME__
 
         self.ADDR = (self.SERVER, self.PORT)
 
@@ -65,6 +68,12 @@ class newClient:
 
             checkConnection = threading.Thread(target = self.__checkConnection__, args = (), daemon = True)
             self.clientIsConnected = True
+
+            try:
+                self.send(msgKey = self.GET_CLIENT_NAME, msgValue = self.SYSTEM_NAME)
+            except:
+                pass
+
             checkConnection.start()
         except:
             self.log.write(f"[{datetime.now().strftime('''%H:%M:%S''')}] [CONNECTING...] Can't connect to {self.SERVER}:{self.PORT}...\n")
@@ -90,7 +99,7 @@ class newClient:
         if self.clientIsConnected:
             msg = msgKey + " --> " + msgValue
 
-            if msgValue != self.CHECK_CONNECTION_MESSAGE:
+            if msgValue != self.CHECK_CONNECTION_MESSAGE and msgKey != self.GET_CLIENT_NAME:
                 self.log.write(f"[{datetime.now().strftime('''%H:%M:%S''')}] {msg}\n")
                 self.log.flush()
                 self.entryLog.append(f"[{datetime.now().strftime('''%H:%M:%S''')}] {msg}")
@@ -124,7 +133,6 @@ class newClient:
                     self.log.flush()
                     self.entryLog(f"[{datetime.now().strftime('''%H:%M:%S''')}] [DISCONNECTED] {self.ADDR} Server don't respond.]")
                     print(f"[{datetime.now().strftime('''%H:%M:%S''')}] [DISCONNECTED] {self.ADDR} Server don't respond.")
-                print("YES")
             else:
                 self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 

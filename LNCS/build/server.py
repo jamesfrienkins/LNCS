@@ -12,11 +12,14 @@ class newServer:
     FORMAT = 'utf-8'
     DISCONNECT_MESSAGE = "[DISCONNECT]"
     CHECK_CONNECTION_MESSAGE  = "[CHECK_CONNECTION]"
+    GET_CLIENT_NAME = "[GET_CLIENT_NAME]"
     TEXT_MESSAGE = "[TEXT]"
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    listAllIndex = ["[CURRENT_SESSION_KEY]", "[CURRENT_CLIENT_LOG]", "[CURRENT_SERVER_LOG]", "[CURRENT_SYSTEM_STATUS]", "[SERVER_PORT]", "[SYSTEM_IPV4]"]
+    listAllIndex = ["[CURRENT_SESSION_KEY]", "[CURRENT_CLIENT_LOG]", "[CURRENT_SERVER_LOG]", "[CURRENT_SYSTEM_STATUS]", "[SERVER_PORT]", "[SYSTEM_IPV4], [SYSTEM_NAME]"]
     dataValues = "data_values.txt"
     log = ""
+
+    clientConnections = {}
 
     entryLog = []
     clientList = []
@@ -24,6 +27,12 @@ class newServer:
 
     serverIsRunning = False
     activeClients = 0
+
+    def __updateClientStatus__(self, connected):
+        if connected:
+            return "Connected"
+        else:
+            return "Disconnected"
 
     def __init__(self, __PORT__ = 55000):
         self.PORT = __PORT__
@@ -41,13 +50,20 @@ class newServer:
         currentFile.close()
         
     def handle_client(self, conn, addr):
+        clientInfo = [None, None, None, None]
         self.clientId[addr] = True
-
         connected = True
+
+        timeStart = time.time()
+
+        clnt_addr = addr[0]
+        clientInfo[0] = clnt_addr
 
         try:
             while connected and self.clientId.get(addr):
-
+                clientInfo[3] = round(time.time() - timeStart, 2)
+                clientInfo[2] = self.__updateClientStatus__(connected)
+                self.clientConnections[addr[0]] = clientInfo
                 msg_length = conn.recv(self.HEADER).decode(self.FORMAT)
 
                 if msg_length:
@@ -57,9 +73,12 @@ class newServer:
 
                     if msgKey == self.DISCONNECT_MESSAGE:
                         connected = False
+                        clientInfo[2] = self.__updateClientStatus__(connected)
                         conn.send("NONE".encode(self.FORMAT))
                     elif msgKey == self.CHECK_CONNECTION_MESSAGE:
                         conn.send(str(self.CHECK_CONNECTION_MESSAGE).encode(self.FORMAT))
+                    elif msgKey == self.GET_CLIENT_NAME:
+                        clientInfo[1] = msgValue
                     elif msgKey == self.TEXT_MESSAGE:
                         self.log.write(f"[{datetime.now().strftime('''%H:%M:%S''')}] [MESSAGE] {addr} {msgValue}\n")
                         self.log.flush()
@@ -75,6 +94,8 @@ class newServer:
 
                         conn.send("NONE".encode(self.FORMAT))
         except:
+            connected = False
+            clientInfo[2] = self.__updateClientStatus__(connected)
             self.log.write(f"[{datetime.now().strftime('''%H:%M:%S''')}] [DISCONNECTED] {addr} Client don't respond.\n")
             self.log.flush()
             self.entryLog.append(f"[{datetime.now().strftime('''%H:%M:%S''')}] [DISCONNECTED] {addr} Client don't respond.")
@@ -89,6 +110,9 @@ class newServer:
             self.clientList.remove(addr)
             self.activeClients -= 1
 
+            connected = False
+            clientInfo[2] = self.__updateClientStatus__(connected)
+            
             self.log.write(f"[{datetime.now().strftime('''%H:%M:%S''')}] [DISCONNECTED] {addr} Disconnected by client. Active connections = {self.activeClients}\n")
             self.log.flush()
             self.entryLog.append(f"[{datetime.now().strftime('''%H:%M:%S''')}] [DISCONNECTED] {addr} Disconnected by client. Active connections = {self.activeClients}")
@@ -115,7 +139,6 @@ class newServer:
 
                 thread.start()
 
-                
                 self.activeClients += 1
                 self.log.write(f"[{datetime.now().strftime('''%H:%M:%S''')}] [CONNECTING] {addr} Active connections = {self.activeClients}\n")
                 self.log.flush()
@@ -136,6 +159,9 @@ class newServer:
 
         startServer = threading.Thread(target = self.__start__, args = (), daemon = True)
         startServer.start()
+    
+    def returnClientDataList(self):
+        return list(self.clientConnections.values())
 
     def close(self):
         for clientIP in self.clientList:
