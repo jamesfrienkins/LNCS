@@ -61,7 +61,7 @@ class newServer:
 
         try:
             while connected and self.clientId.get(addr):
-                clientInfo[3] = round(time.time() - timeStart, 2)
+                clientInfo[3] = round(time.time() - timeStart + 0.01, 2)
                 clientInfo[2] = self.__updateClientStatus__(connected)
                 self.clientConnections[addr[0]] = clientInfo
                 msg_length = conn.recv(self.HEADER).decode(self.FORMAT)

@@ -131,7 +131,7 @@ class newClient:
                     self.clientIsConnected = False
                     self.log.write(f"[{datetime.now().strftime('''%H:%M:%S''')}] [DISCONNECTED] {self.ADDR} Server don't respond.\n")
                     self.log.flush()
-                    self.entryLog(f"[{datetime.now().strftime('''%H:%M:%S''')}] [DISCONNECTED] {self.ADDR} Server don't respond.]")
+                    self.entryLog.append(f"[{datetime.now().strftime('''%H:%M:%S''')}] [DISCONNECTED] {self.ADDR} Server don't respond.]")
                     print(f"[{datetime.now().strftime('''%H:%M:%S''')}] [DISCONNECTED] {self.ADDR} Server don't respond.")
             else:
                 self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

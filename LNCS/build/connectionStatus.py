@@ -5,6 +5,7 @@ from os import system as cmd
 
 class connections:
     updateInfo = True
+    keyExit = False
 
     def fill(self, string, n, symbol = " "):
         n = max(len(string), n)
@@ -14,8 +15,10 @@ class connections:
         return string
 
     def printCurrentConnections(self, spacing = 25):
-        lastConnectionList = ""
+        lastConnectionList = "None"
         while True:
+            if self.keyExit:
+                exit()
             if self.updateInfo == True:
                 connectionList = self.getConnectionList()
                 if connectionList != None:
@@ -32,23 +35,31 @@ class connections:
 
                         for a in listA:
                             a = a.split('<>')
-                            clnt_addr, clnt_name, clnt_status, clnt_connection_time = a
 
-                            print(self.fill(clnt_addr, spacing + 2) + self.fill(clnt_name, spacing) + self.fill(clnt_status, spacing - 2) + self.fill(clnt_connection_time, spacing + 5))
+                            try:
+                                clnt_addr, clnt_name, clnt_status, clnt_connection_time = a
+                                print(self.fill(clnt_addr, spacing + 2) + self.fill(clnt_name, spacing) + self.fill(clnt_status, spacing - 2) + self.fill(clnt_connection_time, spacing + 5))
+                            except:
+                                pass
 
     def start(self):
         startOutput = threading.Thread(target = self.printCurrentConnections, args = (), daemon = True)
         startOutput.start()
 
         while True:
+            if self.keyExit:
+                exit()
             time.sleep(1)
             self.update()
     
     def getConnectionList(self):
+        s = socket.socket()
+        port = 55499
         try:
-            s = socket.socket()
-            port = 55499
             s.connect((socket.gethostbyname(socket.gethostname()), port))
+        except:
+            self.keyExit = True
+        try:
             dataList = s.recv(2028)
             s.close()
             return dataList
@@ -58,6 +69,13 @@ class connections:
     def update(self):
         self.updateInfo = True
 
-c = connections()
+def main():
+    c = connections()
 
-c.start()
+    c.start()
+
+if __name__ == '__main__':
+    try:
+        main()
+    except KeyboardInterrupt:
+        print('[Forced termination by user]')

@@ -5,7 +5,9 @@ import socket
 import threading
 import server as srvr
 import client as clnt
+from os import startfile
 from os import system as cmd
+from subprocess import check_output as system
 
 currentSystemIPV4 = socket.gethostbyname(socket.gethostname())
 listAllIndex = ["[CURRENT_SESSION_KEY]", "[CURRENT_CLIENT_LOG]", "[CURRENT_SERVER_LOG]", "[CURRENT_SYSTEM_STATUS]", "[SERVER_PORT]", "[SYSTEM_IPV4]", "[SYSTEM_NAME]"]
@@ -34,7 +36,7 @@ def rewriteLine(file, lineKey, newLine):
     currentFile = open(file, "r")
     listAllLines = currentFile.readlines()
 
-    listAllLines[listAllIndex.index(lineKey)] = lineKey + ' <-> ' + newLine + '\n'
+    listAllLines[listAllIndex.index(lineKey)] = str(lineKey) + ' <-> ' + str(newLine) + '\n'
 
     currentFile = open(file, "w")
     currentFile.writelines(listAllLines)
@@ -93,7 +95,7 @@ def setUpCurrentSystemStatus():
         PORT = returnValue(dataValues, listAllIndex[4])
         IPV4 = returnValue(dataValues, listAllIndex[5])
         if systemStatus == 'client':
-            SYSTEM_NAME = returnValue(dataValues, listAllIndex[5])
+            SYSTEM_NAME = returnValue(dataValues, listAllIndex[6])
     else:
         while setUpKey:
             try:
@@ -171,8 +173,6 @@ def systemStatusAdmin():
     gsd.start()
     ssd.start()
 
-    time.sleep(25)
-
 def systemStatusClient():
     global client
 
@@ -180,7 +180,8 @@ def systemStatusClient():
     client.start(__SERVER__ = IPV4, __PORT__ = int(PORT), __SYSTEM_NAME__ = SYSTEM_NAME)
     client.connect()
     client.send('Hello!')
-    time.sleep(2)
+    time.sleep(5)
+    client.send('Hi!')
 
 def main():
     systemStatus = setUpCurrentSystemStatus()
@@ -190,11 +191,26 @@ def main():
     rewriteLine(dataValues, listAllIndex[0], currentSessionKey)
 
     if systemStatus == 'admin':
-        systemStatusAdmin()
-    else:
-        systemStatusClient()
+        systemAdmin = threading.Thread(target = systemStatusAdmin, args = (), daemon = True)
+        systemAdmin.start()
 
+        try:
+            startfile('connectionStatus.exe')
+            print('[STARTING] ConnectionStatus.exe is starting.')
+        except:
+            print('[ERROR] ConnectionStatus.exe is missing.')
+        
+        time.sleep(65)
+
+    else:
+        systemClient = threading.Thread(target = systemStatusClient, args = (), daemon = True)
+        systemClient.start()
+
+        time.sleep(25)
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        print('[Forced termination by user]')
