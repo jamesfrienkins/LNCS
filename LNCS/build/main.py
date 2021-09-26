@@ -5,16 +5,21 @@ import socket
 import threading
 import server as srvr
 import client as clnt
-from os import startfile
 from os import system as cmd
-from subprocess import check_output as system
+from datetime import datetime
+from os import startfile, path
+
+cmd('clr')
 
 currentSystemIPV4 = socket.gethostbyname(socket.gethostname())
-listAllIndex = ["[CURRENT_SESSION_KEY]", "[CURRENT_CLIENT_LOG]", "[CURRENT_SERVER_LOG]", "[CURRENT_SYSTEM_STATUS]", "[SERVER_PORT]", "[SYSTEM_IPV4]", "[SYSTEM_NAME]"]
-dataValues = "data_values.txt"
+listAllIndex = ["[CURRENT_SESSION_KEY]", "[CURRENT_CLIENT_LOG]", "[CURRENT_SERVER_LOG]", "[CURRENT_SYSTEM_STATUS]", "[SERVER_PORT]", "[SYSTEM_IPV4]", "[SYSTEM_NAME]", "[SAVE_FILE_LOCATION]"]
+currentPath = path.dirname(path.realpath(__file__))
 IPV4, PORT, SYSTEM_NAME = None, None, None
+dataValues = f"{currentPath}\data\data_values.txt"
+SAVE_FILE_LOCATION = ""
 client, server = None, None
 serverDataToSend = None
+serverDataValues = None
 
 def checkIPV4(ip):
     try:
@@ -43,18 +48,19 @@ def rewriteLine(file, lineKey, newLine):
     currentFile.close()
 
 def getServerData():
-    global serverDataToSend
+    global serverDataToSend, serverDataValues
     while True:
         serverDataValues = server.returnClientDataList()
 
         serverDataToSend = ""
 
-        for f in serverDataValues:
-            for i in f:
-                serverDataToSend += str(i) + '<>'
-            serverDataToSend = serverDataToSend[:-2]
-            serverDataToSend += '<|>'
-        serverDataToSend = serverDataToSend[:-3]
+        if serverDataValues != None:
+            for f in serverDataValues:
+                for i in f:
+                    serverDataToSend += str(i) + '<>'
+                serverDataToSend = serverDataToSend[:-2]
+                serverDataToSend += '<|>'
+            serverDataToSend = serverDataToSend[:-3]
 
         time.sleep(1)
 
@@ -62,18 +68,21 @@ def sendServerData():
     global serverDataToSend
 
     while True:
-        s = socket.socket()          
+        s = socket.socket()
         port = 55499
         s.bind((socket.gethostbyname(socket.gethostname()), port))         
         s.listen()
 
         while True:
-            c, addr = s.accept()
-            c.send(serverDataToSend.encode('utf-8'))
-            c.close()
+            try:
+                c, _ = s.accept()
+                c.send(serverDataToSend.encode('utf-8'))
+                c.close()
+            except:
+                pass
 
 def setUpCurrentSystemStatus():
-    global IPV4, PORT, SYSTEM_NAME
+    global IPV4, PORT, SYSTEM_NAME, SAVE_FILE_LOCATION
 
     cmd('cls')
 
@@ -96,6 +105,7 @@ def setUpCurrentSystemStatus():
         IPV4 = returnValue(dataValues, listAllIndex[5])
         if systemStatus == 'client':
             SYSTEM_NAME = returnValue(dataValues, listAllIndex[6])
+            SAVE_FILE_LOCATION = returnValue(dataValues, listAllIndex[7])
     else:
         while setUpKey:
             try:
@@ -103,7 +113,7 @@ def setUpCurrentSystemStatus():
 
                 if systemStatus == 'admin' or systemStatus == 'client':
                     while True:
-                        confirmation = input(f"\nYour chose {systemStatus} system status. Please confirm your choice (y/n): ")
+                        confirmation = input(f"\nYou chose {systemStatus} system status. Please confirm your choice (y/n): ")
 
                         if confirmation == 'y':
                             setUpKey = False
@@ -128,11 +138,11 @@ def setUpCurrentSystemStatus():
                 print("Set up your system...\n\n")
                 print(f"Current system ipv4: {currentSystemIPV4}")
                 if systemStatus == 'client':
-                    IPV4, PORT = input("Print server addres IPV4, PORT(55000 ≈ 70000) in format (IPV4:PORT): ").split(':')
+                    IPV4, PORT = input("Enter server addres IPV4, PORT(55000 ≈ 70000) in format (IPV4:PORT): ").split(':')
                     if checkIPV4(IPV4) and int(PORT) >= 55000 and int(PORT) <= 70000:
                         setUpKey = False
                 elif systemStatus == 'admin':
-                    PORT = input("Print PORT (55000 ≈ 70000): ")
+                    PORT = input("Enter PORT (55000 ≈ 70000): ")
                     IPV4 = currentSystemIPV4
                     
                     if int(PORT) >= 55000 and int(PORT) <= 70000:
@@ -148,8 +158,19 @@ def setUpCurrentSystemStatus():
                 try:
                     cmd('cls')
                     print("Set up your system...\n\n")
-                    SYSTEM_NAME = input("Create current system name (will be displayed at server): ")
+                    SYSTEM_NAME = input("Enter current system name (will be displayed at server): ")
                     if SYSTEM_NAME[0] not in string.digits:
+                        setUpKey = False
+                except:
+                    cmd('clr')
+
+            setUpKey = True
+            while setUpKey:
+                try:
+                    cmd('cls')
+                    print("Set up your system...\n\n")
+                    SAVE_FILE_LOCATION = input("Enter location of folder for saving files: ")
+                    if path.isdir(SAVE_FILE_LOCATION):
                         setUpKey = False
                 except:
                     cmd('clr')
@@ -157,6 +178,7 @@ def setUpCurrentSystemStatus():
         rewriteLine(dataValues, listAllIndex[4], PORT)
         rewriteLine(dataValues, listAllIndex[5], IPV4)
         rewriteLine(dataValues, listAllIndex[6], SYSTEM_NAME)
+        rewriteLine(dataValues, listAllIndex[7], SAVE_FILE_LOCATION)
         
         print(f"Your system is running on {IPV4}:{PORT}")
             
@@ -169,21 +191,31 @@ def systemStatusAdmin():
     ssd = threading.Thread(target = sendServerData, args = (), daemon = True)
     server = srvr.newServer(__PORT__ = int(PORT))
 
-    server.start()    
+    server.start()
     gsd.start()
     ssd.start()
+
+    time.sleep(7)
+
+    print('send')
+    server.sendFolder(['''F:\\Anime wallpapers'''], 'new pc')
 
 def systemStatusClient():
     global client
 
     client = clnt.newClient()
-    client.start(__SERVER__ = IPV4, __PORT__ = int(PORT), __SYSTEM_NAME__ = SYSTEM_NAME)
+    client.start(__SERVER__ = IPV4, __PORT__ = int(PORT), __SYSTEM_NAME__ = SYSTEM_NAME, __SAVE_FILE_LOCATION__ = SAVE_FILE_LOCATION)
     client.connect()
     client.send('Hello!')
-    time.sleep(5)
+    time.sleep(8)
     client.send('Hi!')
 
-def main():
+def main(startConnectionStatus = False):
+    cmd(f"mkdir {currentPath}\cashe")
+    cmd(f"attrib +h {currentPath}\cashe")
+    cmd(f"mkdir {currentPath}\data")
+    cmd(f"attrib +h {currentPath}\data")
+
     systemStatus = setUpCurrentSystemStatus()
 
     currentSessionKey = ''.join(random.choices(string.ascii_uppercase + string.digits + string.ascii_lowercase, k = 16))
@@ -194,13 +226,16 @@ def main():
         systemAdmin = threading.Thread(target = systemStatusAdmin, args = (), daemon = True)
         systemAdmin.start()
 
-        try:
-            startfile('connectionStatus.exe')
-            print('[STARTING] ConnectionStatus.exe is starting.')
-        except:
-            print('[ERROR] ConnectionStatus.exe is missing.')
+        time.sleep(1)
+
+        if startConnectionStatus:
+            try:
+                startfile(f'{currentPath}\connectionStatus.exe')
+                print(f"[{datetime.now().strftime('''%H:%M:%S''')}] [STARTING] ConnectionStatus.exe is starting.")
+            except:
+                print(f"[{datetime.now().strftime('''%H:%M:%S''')}] [ERROR] ConnectionStatus.exe is missing.")
         
-        time.sleep(65)
+        time.sleep(75)
 
     else:
         systemClient = threading.Thread(target = systemStatusClient, args = (), daemon = True)
@@ -211,6 +246,6 @@ def main():
 
 if __name__ == "__main__":
     try:
-        main()
+        main(startConnectionStatus=False)
     except KeyboardInterrupt:
-        print('[Forced termination by user]')
+        print(f"[{datetime.now().strftime('''%H:%M:%S''')}] [ERROR] Forced termination by user.")

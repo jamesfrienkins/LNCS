@@ -1,8 +1,12 @@
 import time
 import socket
+import os.path
+import os
 import threading
 from os import system as cmd
 from datetime import datetime
+
+from icecream import ic
 
 class newClient:
     HEADER = 64
@@ -10,13 +14,19 @@ class newClient:
     SYSTEM_NAME = ""
     DISCONNECT_MESSAGE = "[DISCONNECT]"
     CHECK_CONNECTION_MESSAGE  = "[CHECK_CONNECTION]"
+    GET_PORT_MESSAGE = "[GET_PORT_MESSAGE]"
     GET_CLIENT_NAME = "[GET_CLIENT_NAME]"
     CMD_MESSAGE = "[CMD]"
     TEXT_MESSAGE = "[TEXT]"
     client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     SERVER = socket.gethostbyname(socket.gethostname())
     listAllIndex = ["[CURRENT_SESSION_KEY]", "[CURRENT_CLIENT_LOG]", "[CURRENT_SERVER_LOG]", "[CURRENT_SYSTEM_STATUS]", "[SERVER_PORT]", "[SYSTEM_IPV4], [SYSTEM_NAME]"]
-    dataValues = "data_values.txt"
+    currentPath = os.path.dirname(os.path.realpath(__file__))
+    dataValues = f"{currentPath}\data\data_values.txt"
+    sendMessageList = []
+    CHUNKSIZE = 1000000
+    PORT_FOR_FILES = ""
+    folderToSave = ""
     PORT = 55000
     ADDR = (SERVER, PORT)
     log = ""
@@ -39,15 +49,16 @@ class newClient:
         currentFile = open(file, "w")
         currentFile.writelines(listAllLines)
         currentFile.close()
-    
-    def start(self, __SERVER__ = socket.gethostbyname(socket.gethostname()), __PORT__ = 55000, __SYSTEM_NAME__ = ""):
+
+    def start(self, __SERVER__ = socket.gethostbyname(socket.gethostname()), __PORT__ = 55000, __SYSTEM_NAME__ = "", __SAVE_FILE_LOCATION__ = f"{currentPath}\saved_files"):
         self.PORT = __PORT__
         self.SERVER = __SERVER__
         self.SYSTEM_NAME = __SYSTEM_NAME__
+        self.folderToSave = __SAVE_FILE_LOCATION__
 
         self.ADDR = (self.SERVER, self.PORT)
 
-        self.log = open(f"log-client-{__SERVER__}.{__PORT__}.txt", 'a+')
+        self.log = open(f"{self.currentPath}\data\log-client-{__SERVER__}.{__PORT__}.txt", 'a+')
 
         self.__rewriteLine__(self.dataValues, self.listAllIndex[1], f"log-client-{__SERVER__}.{__PORT__}.txt")
         
@@ -66,11 +77,23 @@ class newClient:
             self.entryLog.append(f"[{datetime.now().strftime('''%H:%M:%S''')}] [CONNECTING...] Connected to {self.SERVER}:{self.PORT}...")
             print(f"[{datetime.now().strftime('''%H:%M:%S''')}] [CONNECTING...] Connected to {self.SERVER}:{self.PORT}...")
 
-            checkConnection = threading.Thread(target = self.__checkConnection__, args = (), daemon = True)
+            sendThread = threading.Thread(target = self.__sendThread__, args = (), daemon = True)
+            sendThread.start()
+
             self.clientIsConnected = True
+            
+            try:
+                self.PORT_FOR_FILES = self.send__(msgKey = self.GET_PORT_MESSAGE, msgValue = self.GET_PORT_MESSAGE)
+            except:
+                pass                
+
+            recieveFolderThread = threading.Thread(target = self.__recieveFolder__, args = (self.ADDR[0], self.PORT_FOR_FILES, self.folderToSave), daemon = True)
+            recieveFolderThread.start()
+
+            checkConnection = threading.Thread(target = self.__checkConnection__, args = (), daemon = True)
 
             try:
-                self.send(msgKey = self.GET_CLIENT_NAME, msgValue = self.SYSTEM_NAME)
+                self.send__(msgKey = self.GET_CLIENT_NAME, msgValue = self.SYSTEM_NAME)
             except:
                 pass
 
@@ -82,7 +105,7 @@ class newClient:
             print(f"[{datetime.now().strftime('''%H:%M:%S''')}] [CONNECTING...] Can't connect to {self.SERVER}:{self.PORT}...")
 
     def disconnect(self):
-        self.send(self.DISCONNECT_MESSAGE, msgKey=self.DISCONNECT_MESSAGE)
+        self.send__(self.DISCONNECT_MESSAGE, msgKey=self.DISCONNECT_MESSAGE)
         self.log.write(f"[{datetime.now().strftime('''%H:%M:%S''')}] [DISCONNECTED] {self.ADDR} Disconnected by client.\n")
         self.log.flush()
         self.entryLog(f"[{datetime.now().strftime('''%H:%M:%S''')}] [DISCONNECTED] {self.ADDR} Disconnected by client.")
@@ -96,10 +119,58 @@ class newClient:
         print(f"[{datetime.now().strftime('''%H:%M:%S''')}] [CLOSING...]")
 
     def send(self, msgValue, msgKey = "[TEXT]"):
+        self.sendMessageList.append([msgValue, msgKey])
+
+    def __sendThread__(self):
+        while True:
+            if self.sendMessageList != [] and self.clientIsConnected:
+                msgValue, msgKey = self.sendMessageList.pop(0)
+
+                self.send__(msgValue, msgKey)
+
+    def __recieveFolder__(self, ip, port, pathToSave):
+        key = False
+        while True:
+            if key == False:
+                sock = socket.socket()
+                key = not key
+            try:
+                srvAddr = (ip, int(port))
+                sock.connect(srvAddr)
+                with sock,sock.makefile('rb') as clientfile:
+                    while True:
+                        raw = clientfile.readline()
+                        if not raw: break
+
+                        filename = raw.strip().decode()
+                        length = int(clientfile.readline())
+
+                        path = os.path.join(pathToSave,filename)
+                        ic(path)
+                        os.makedirs(os.path.dirname(path),exist_ok=True)
+
+                        with open(path,'wb') as f:
+                            while length:
+                                chunk = min(length, self.CHUNKSIZE)
+                                data = clientfile.read(chunk)
+                                if not data: break
+                                f.write(data)
+                                length -= len(data)
+                            else:
+                                print(f"[{datetime.now().strftime('''%H:%M:%S''')}] [FILE] File received successfully.")
+                                key = not key
+                                continue
+
+                        print(f"[{datetime.now().strftime('''%H:%M:%S''')}] [FILE] Error occurred while file receiving.")
+                        break
+            except:
+                pass
+
+    def send__(self, msgValue, msgKey = "[TEXT]"):
         if self.clientIsConnected:
             msg = msgKey + " --> " + msgValue
 
-            if msgValue != self.CHECK_CONNECTION_MESSAGE and msgKey != self.GET_CLIENT_NAME:
+            if msgValue != self.CHECK_CONNECTION_MESSAGE and msgKey != self.GET_CLIENT_NAME and msgKey != self.CHECK_CONNECTION_MESSAGE and msgKey != self.GET_PORT_MESSAGE:
                 self.log.write(f"[{datetime.now().strftime('''%H:%M:%S''')}] {msg}\n")
                 self.log.flush()
                 self.entryLog.append(f"[{datetime.now().strftime('''%H:%M:%S''')}] {msg}")
@@ -114,7 +185,7 @@ class newClient:
             serverAnsw = "NONE"
             serverAnsw = self.client.recv(1024).decode(self.FORMAT)
 
-            if serverAnsw != "NONE" and serverAnsw != self.CHECK_CONNECTION_MESSAGE:
+            if serverAnsw != "NONE" and serverAnsw != self.CHECK_CONNECTION_MESSAGE and msgKey != self.GET_PORT_MESSAGE:
                 self.log.write(f"[{datetime.now().strftime('''%H:%M:%S''')}] {serverAnsw}\n")
                 self.log.flush()
                 self.entryLog.append(f"[{datetime.now().strftime('''%H:%M:%S''')}] {serverAnsw}")
@@ -126,7 +197,7 @@ class newClient:
         while True:
             if self.clientIsConnected:
                 try:
-                    self.send(msgValue = self.CHECK_CONNECTION_MESSAGE, msgKey = self.CHECK_CONNECTION_MESSAGE)
+                    self.send__(msgValue = self.CHECK_CONNECTION_MESSAGE, msgKey = self.CHECK_CONNECTION_MESSAGE)
                 except:
                     self.clientIsConnected = False
                     self.log.write(f"[{datetime.now().strftime('''%H:%M:%S''')}] [DISCONNECTED] {self.ADDR} Server don't respond.\n")
@@ -143,6 +214,11 @@ class newClient:
                     self.log.flush()
                     self.entryLog.append(f"[{datetime.now().strftime('''%H:%M:%S''')}] [CONNECTING...] Connected to {self.SERVER}:{self.PORT}...")
                     print(f"[{datetime.now().strftime('''%H:%M:%S''')}] [CONNECTING...] Connected to {self.SERVER}:{self.PORT}...")
+                    self.send__(msgKey = self.GET_CLIENT_NAME, msgValue = self.SYSTEM_NAME)
+                    try:
+                        self.PORT_FOR_FILES = self.send__(msgKey = self.GET_PORT_MESSAGE, msgValue = self.GET_PORT_MESSAGE)
+                    except:
+                        pass
                 except:
                     self.log.write(f"[{datetime.now().strftime('''%H:%M:%S''')}] [CONNECTING...] Can't connect to {self.SERVER}:{self.PORT}...\n")
                     self.log.flush()
