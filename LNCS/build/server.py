@@ -1,8 +1,9 @@
+from main import checkIPV4
 import time
 import socket
 import os.path
 import threading
-from os import system, walk
+from os import walk
 from os import system as cmd
 from datetime import datetime
 from subprocess import check_output as __cmd__
@@ -64,22 +65,30 @@ class newServer:
                 for p in pathToFolders:
                     v.append(p)
             else:
-                self.log.write(f"[{datetime.now().strftime('''%H:%M:%S''')}] [ERROR] File sending failed. Client {client} isn't connected.\n")
+                self.log.write(f'''[{datetime.now().strftime("%H:%M:%S")}] [ERROR] File sending failed. Client "{client}" isn't connected.\n''')
                 self.log.flush()
-                self.entryLog.append(f"[{datetime.now().strftime('''%H:%M:%S''')}] [ERROR] File sending failed. Client {client} isn't connected.")
-                print(f"[{datetime.now().strftime('''%H:%M:%S''')}] [ERROR] File sending failed. Client {client} isn't connected.")
+                self.entryLog.append(f'''[{datetime.now().strftime("%H:%M:%S")}] [ERROR] File sending failed. Client "{client}" isn't connected.''')
+                print(f'''[{datetime.now().strftime("%H:%M:%S")}] [ERROR] File sending failed. Client "{client}" isn't connected.''')
         else:
-            self.log.write(f'''[{datetime.now().strftime("%H:%M:%S")}] [ERROR] File sending failed. Uncorrect ip "{client}"''')
-            self.log.flush()
-            self.entryLog.append(f'''[{datetime.now().strftime("%H:%M:%S")}] [ERROR] File sending failed. Uncorrect ip "{client}"''')
-            print(f'''[{datetime.now().strftime("%H:%M:%S")}] [ERROR] File sending failed. Uncorrect ip "{client}"''')
-    
+            if checkIPV4(client):
+                self.log.write(f'''[{datetime.now().strftime("%H:%M:%S")}] [ERROR] File sending failed. Incorrect ip "{client}" or client isn't connected.''')
+                self.log.flush()
+                self.entryLog.append(f'''[{datetime.now().strftime("%H:%M:%S")}] [ERROR] File sending failed. Incorrect ip "{client}" or client isn't connected.''')
+                print(f'''[{datetime.now().strftime("%H:%M:%S")}] [ERROR] File sending failed. Incorrect ip "{client}" or client isn't connected.''')
+            else:
+                self.log.write(f'''[{datetime.now().strftime("%H:%M:%S")}] [ERROR] File sending failed. Incorrect name "{client}" or client isn't connected.''')
+                self.log.flush()
+                self.entryLog.append(f'''[{datetime.now().strftime("%H:%M:%S")}] [ERROR] File sending failed. Incorrect name "{client}" or client isn't connected.''')
+                print(f'''[{datetime.now().strftime("%H:%M:%S")}] [ERROR] File sending failed. Incorrect name "{client}" or client isn't connected.''')
+
     def __sendFolder__(self, addr):
         key = addr[0]
         sock = socket.socket()
         clntAddr = (socket.gethostbyname(socket.gethostname()), int(self.clientPortNameForFiles.get(addr)))
         sock.bind(clntAddr)
         sock.listen()
+
+        sock.settimeout(0.5)
 
         print(clntAddr)
 
@@ -90,21 +99,16 @@ class newServer:
             values = self.pathToTarget.get(addr)
 
             if values != []:
-                print(2)
                 value = values.pop(0)
                 self.pathToTarget[addr[0]] = values
-                print(21)
                 client, _ = sock.accept()
-                print(22)
                 sd = value
 
                 if not os.path.isdir(value):
                     cmd(f"mkdir {self.currentPath}\cashe\{key}")
                     cmd(f'''copy "{value}" "{self.currentPath}\cashe\{key}"''')
                     value = f"{self.currentPath}\cashe\{key}"
-                print(3)
                 with client:
-                    print(4)
                     try:
                         for path, _, files in walk(value):
                             self.log.write(f"[{datetime.now().strftime('''%H:%M:%S''')}] [FILE] Sending {sd}")

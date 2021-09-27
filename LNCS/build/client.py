@@ -74,6 +74,7 @@ class newClient:
             
             self.log.write(f"[{datetime.now().strftime('''%H:%M:%S''')}] [CONNECTING...] Connected to {self.SERVER}:{self.PORT}...\n")
             self.log.flush()
+            print(3)
             self.entryLog.append(f"[{datetime.now().strftime('''%H:%M:%S''')}] [CONNECTING...] Connected to {self.SERVER}:{self.PORT}...")
             print(f"[{datetime.now().strftime('''%H:%M:%S''')}] [CONNECTING...] Connected to {self.SERVER}:{self.PORT}...")
 
@@ -85,7 +86,7 @@ class newClient:
             try:
                 self.PORT_FOR_FILES = self.send__(msgKey = self.GET_PORT_MESSAGE, msgValue = self.GET_PORT_MESSAGE)
             except:
-                pass                
+                pass
 
             recieveFolderThread = threading.Thread(target = self.__recieveFolder__, args = (self.ADDR[0], self.PORT_FOR_FILES, self.folderToSave), daemon = True)
             recieveFolderThread.start()
@@ -130,7 +131,8 @@ class newClient:
 
     def __recieveFolder__(self, ip, port, pathToSave):
         key = False
-        while True:
+        print(1)
+        while self.clientIsConnected:
             if key == False:
                 sock = socket.socket()
                 key = not key
@@ -146,7 +148,6 @@ class newClient:
                         length = int(clientfile.readline())
 
                         path = os.path.join(pathToSave,filename)
-                        ic(path)
                         os.makedirs(os.path.dirname(path),exist_ok=True)
 
                         with open(path,'wb') as f:
@@ -157,11 +158,17 @@ class newClient:
                                 f.write(data)
                                 length -= len(data)
                             else:
-                                print(f"[{datetime.now().strftime('''%H:%M:%S''')}] [FILE] File received successfully.")
+                                print(f"[{datetime.now().strftime('''%H:%M:%S''')}] [FILE] File {filename} received successfully.")
+                                self.log.write(f"[{datetime.now().strftime('''%H:%M:%S''')}] [FILE] File {filename} received successfully.")
+                                self.log.flush()
+                                self.entryLog.append(f"[{datetime.now().strftime('''%H:%M:%S''')}] [FILE] File {filename} received successfully.")
                                 key = not key
                                 continue
 
-                        print(f"[{datetime.now().strftime('''%H:%M:%S''')}] [FILE] Error occurred while file receiving.")
+                        print(f"[{datetime.now().strftime('''%H:%M:%S''')}] [FILE] {filename} Error occurred while file receiving.")
+                        self.log.write(f"[{datetime.now().strftime('''%H:%M:%S''')}] [FILE] {filename} Error occurred while file receiving.")
+                        self.log.flush()
+                        self.entryLog.append(f"[{datetime.now().strftime('''%H:%M:%S''')}] [FILE] {filename} Error occurred while file receiving.")
                         break
             except:
                 pass
@@ -214,11 +221,14 @@ class newClient:
                     self.log.flush()
                     self.entryLog.append(f"[{datetime.now().strftime('''%H:%M:%S''')}] [CONNECTING...] Connected to {self.SERVER}:{self.PORT}...")
                     print(f"[{datetime.now().strftime('''%H:%M:%S''')}] [CONNECTING...] Connected to {self.SERVER}:{self.PORT}...")
-                    self.send__(msgKey = self.GET_CLIENT_NAME, msgValue = self.SYSTEM_NAME)
+                    self.PORT_FOR_FILES = self.send__(msgKey = self.GET_PORT_MESSAGE, msgValue = self.GET_PORT_MESSAGE)
+                    recieveFolderThread = threading.Thread(target = self.__recieveFolder__, args = (self.ADDR[0], self.PORT_FOR_FILES, self.folderToSave), daemon = True)
+                    recieveFolderThread.start()
                     try:
-                        self.PORT_FOR_FILES = self.send__(msgKey = self.GET_PORT_MESSAGE, msgValue = self.GET_PORT_MESSAGE)
+                        self.send__(msgKey = self.GET_CLIENT_NAME, msgValue = self.SYSTEM_NAME)
                     except:
                         pass
+          
                 except:
                     self.log.write(f"[{datetime.now().strftime('''%H:%M:%S''')}] [CONNECTING...] Can't connect to {self.SERVER}:{self.PORT}...\n")
                     self.log.flush()

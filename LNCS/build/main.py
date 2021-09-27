@@ -195,10 +195,7 @@ def systemStatusAdmin():
     gsd.start()
     ssd.start()
 
-    time.sleep(7)
-
-    print('send')
-    server.sendFolder(['''F:\\Anime wallpapers'''], 'new pc')
+    time.sleep(120)
 
 def systemStatusClient():
     global client
@@ -206,9 +203,16 @@ def systemStatusClient():
     client = clnt.newClient()
     client.start(__SERVER__ = IPV4, __PORT__ = int(PORT), __SYSTEM_NAME__ = SYSTEM_NAME, __SAVE_FILE_LOCATION__ = SAVE_FILE_LOCATION)
     client.connect()
-    client.send('Hello!')
-    time.sleep(8)
-    client.send('Hi!')
+    client.send('Hello world!')
+    time.sleep(5)
+    client.send('Msg1 delay 5 sec')
+    time.sleep(5)
+    client.send('Msg2 delay 5 sec')
+    time.sleep(10)
+    client.send('Msg3 delay 10 sec')
+    time.sleep(10)
+    client.send('Msg4 delay 10 sec')   
+
 
 def main(startConnectionStatus = False):
     cmd(f"mkdir {currentPath}\cashe")
@@ -246,6 +250,6 @@ def main(startConnectionStatus = False):
 
 if __name__ == "__main__":
     try:
-        main(startConnectionStatus=False)
+        main(startConnectionStatus = True)
     except KeyboardInterrupt:
         print(f"[{datetime.now().strftime('''%H:%M:%S''')}] [ERROR] Forced termination by user.")
