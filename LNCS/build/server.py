@@ -1,4 +1,3 @@
-from main import checkIPV4
 import time
 import socket
 import os.path
@@ -6,7 +5,6 @@ import threading
 from os import walk
 from os import system as cmd
 from datetime import datetime
-from subprocess import check_output as __cmd__
 
 class newServer:
     HEADER = 64
@@ -41,6 +39,12 @@ class newServer:
     activeClients = 0
     maxActiveClients = 0
 
+    def output(self, value):
+        self.log.write(value + "\n")
+        self.log.flush()
+        self.entryLog.append(value)
+        print(value)
+
     def checkIPV4(self, ip):
         try:
             socket.inet_aton(ip)
@@ -65,21 +69,15 @@ class newServer:
                 for p in pathToFolders:
                     v.append(p)
             else:
-                self.log.write(f'''[{datetime.now().strftime("%H:%M:%S")}] [ERROR] File sending failed. Client "{client}" isn't connected.\n''')
-                self.log.flush()
-                self.entryLog.append(f'''[{datetime.now().strftime("%H:%M:%S")}] [ERROR] File sending failed. Client "{client}" isn't connected.''')
-                print(f'''[{datetime.now().strftime("%H:%M:%S")}] [ERROR] File sending failed. Client "{client}" isn't connected.''')
+                valueOutput = (f'''[{datetime.now().strftime("%H:%M:%S")}] [ERROR] File sending failed. Client "{client}" isn't connected.\n''')
+                self.output(valueOutput)
         else:
             if checkIPV4(client):
-                self.log.write(f'''[{datetime.now().strftime("%H:%M:%S")}] [ERROR] File sending failed. Incorrect ip "{client}" or client isn't connected.''')
-                self.log.flush()
-                self.entryLog.append(f'''[{datetime.now().strftime("%H:%M:%S")}] [ERROR] File sending failed. Incorrect ip "{client}" or client isn't connected.''')
-                print(f'''[{datetime.now().strftime("%H:%M:%S")}] [ERROR] File sending failed. Incorrect ip "{client}" or client isn't connected.''')
+                valueOutput = (f'''[{datetime.now().strftime("%H:%M:%S")}] [ERROR] File sending failed. Incorrect ip "{client}" or client isn't connected.''')
+                self.output(valueOutput)
             else:
-                self.log.write(f'''[{datetime.now().strftime("%H:%M:%S")}] [ERROR] File sending failed. Incorrect name "{client}" or client isn't connected.''')
-                self.log.flush()
-                self.entryLog.append(f'''[{datetime.now().strftime("%H:%M:%S")}] [ERROR] File sending failed. Incorrect name "{client}" or client isn't connected.''')
-                print(f'''[{datetime.now().strftime("%H:%M:%S")}] [ERROR] File sending failed. Incorrect name "{client}" or client isn't connected.''')
+                valueOutput = (f'''[{datetime.now().strftime("%H:%M:%S")}] [ERROR] File sending failed. Incorrect name "{client}" or client isn't connected.''')
+                self.output(valueOutput)
 
     def __sendFolder__(self, addr):
         key = addr[0]
@@ -111,10 +109,8 @@ class newServer:
                 with client:
                     try:
                         for path, _, files in walk(value):
-                            self.log.write(f"[{datetime.now().strftime('''%H:%M:%S''')}] [FILE] Sending {sd}")
-                            self.log.flush()
-                            self.entryLog.append(f"[{datetime.now().strftime('''%H:%M:%S''')}] [FILE] Sending {sd}")
-                            print(f"[{datetime.now().strftime('''%H:%M:%S''')}] [FILE] Sending {sd}")
+                            valueOutput = (f"[{datetime.now().strftime('''%H:%M:%S''')}] [FILE] Sending {sd}")
+                            self.output(valueOutput)
 
                             for file in files:
                                 filename = os.path.join(path, file)
@@ -131,15 +127,11 @@ class newServer:
                                         if not data:
                                             break
                                         client.sendall(data)
-                        self.log.write(f"[{datetime.now().strftime('''%H:%M:%S''')}] [FILE] Sending {sd} finished.")
-                        self.log.flush()
-                        self.entryLog.append(f"[{datetime.now().strftime('''%H:%M:%S''')}] [FILE] Sending {sd} finished.")
-                        print(f"[{datetime.now().strftime('''%H:%M:%S''')}] [FILE] Sending {sd} finished.")
+                        valueOutput = (f"[{datetime.now().strftime('''%H:%M:%S''')}] [FILE] Sending {sd} finished.")
+                        self.output(valueOutput)
                     except:
-                        self.log.write(f"[{datetime.now().strftime('''%H:%M:%S''')}] [FILE] Sending {sd} failed.")
-                        self.log.flush()
-                        self.entryLog.append(f"[{datetime.now().strftime('''%H:%M:%S''')}] [FILE] Sending {sd} failed.")
-                        print(f"[{datetime.now().strftime('''%H:%M:%S''')}] [FILE] Sending {sd} failed.")
+                        valueOutput = (f"[{datetime.now().strftime('''%H:%M:%S''')}] [FILE] Sending {sd} failed.")
+                        self.output(valueOutput)
 
     def __updateClientStatus__(self, connected):
         if connected:
@@ -200,26 +192,19 @@ class newServer:
                     elif msgKey == self.GET_CLIENT_NAME:
                         clientInfo[1] = msgValue
                     elif msgKey == self.TEXT_MESSAGE:
-                        self.log.write(f"[{datetime.now().strftime('''%H:%M:%S''')}] [MESSAGE] {addr} {msgValue}\n")
-                        self.log.flush()
-                        self.entryLog.append(f"[{datetime.now().strftime('''%H:%M:%S''')}] [MESSAGE] {addr} {msgValue}")
-                        print(f"[{datetime.now().strftime('''%H:%M:%S''')}] [MESSAGE] {addr} {msgValue}")
-
+                        valueOutput = (f"[{datetime.now().strftime('''%H:%M:%S''')}] [MESSAGE] {addr} {msgValue}\n")
+                        self.output(valueOutput)
                         conn.send("NONE".encode(self.FORMAT))
                     else:
-                        self.log.write(f"[{datetime.now().strftime('''%H:%M:%S''')}] [MESSAGE] {addr} {msgKey} {msgValue}\n")
-                        self.log.flush()
-                        self.entryLog(f"[{datetime.now().strftime('''%H:%M:%S''')}] [MESSAGE] {addr} {msgKey} {msgValue}")
-                        print(f"[{datetime.now().strftime('''%H:%M:%S''')}] [MESSAGE] {addr} {msgKey} {msgValue}")
-
+                        valueOutput = (f"[{datetime.now().strftime('''%H:%M:%S''')}] [MESSAGE] {addr} {msgKey} {msgValue}\n")
+                        self.output(valueOutput)
                         conn.send("NONE".encode(self.FORMAT))
         except:
             connected = False
             clientInfo[2] = self.__updateClientStatus__(connected)
-            self.log.write(f"[{datetime.now().strftime('''%H:%M:%S''')}] [DISCONNECTED] {addr} Client don't respond. Active connections = {self.activeClients - 1}\n")
-            self.log.flush()
-            self.entryLog.append(f"[{datetime.now().strftime('''%H:%M:%S''')}] [DISCONNECTED] {addr} Client don't respond. Active connections = {self.activeClients - 1}")
-            print(f"[{datetime.now().strftime('''%H:%M:%S''')}] [DISCONNECTED] {addr} Client don't respond. Active connections = {self.activeClients - 1}")
+            valueOutput = (f"[{datetime.now().strftime('''%H:%M:%S''')}] [DISCONNECTED] {addr} Client don't respond. Active connections = {self.activeClients - 1}\n")
+            self.output(valueOutput)
+
         try:
             conn.close()
         except:
@@ -234,24 +219,18 @@ class newServer:
             if connected:
                 connected = False
                 
-                self.log.write(f"[{datetime.now().strftime('''%H:%M:%S''')}] [DISCONNECTED] {addr} Disconnected by client. Active connections = {self.activeClients}\n")
-                self.log.flush()
-                self.entryLog.append(f"[{datetime.now().strftime('''%H:%M:%S''')}] [DISCONNECTED] {addr} Disconnected by client. Active connections = {self.activeClients}")
-                print(f"[{datetime.now().strftime('''%H:%M:%S''')}] [DISCONNECTED] {addr} Disconnected by client. Active connections = {self.activeClients}")
-            
+                valueOutput = (f"[{datetime.now().strftime('''%H:%M:%S''')}] [DISCONNECTED] {addr} Disconnected by client. Active connections = {self.activeClients}\n")
+                self.output(valueOutput)
+
     def __start__(self):
         try:
-            self.log.write(f"[{datetime.now().strftime('''%H:%M:%S''')}] [STARTING...] Server is starting...\n")
-            self.log.flush()
-            self.entryLog.append(f"[{datetime.now().strftime('''%H:%M:%S''')}] [STARTING...] Server is starting...")
-            print(f"[{datetime.now().strftime('''%H:%M:%S''')}] [STARTING...] Server is starting...")
+            valueOutput = (f"[{datetime.now().strftime('''%H:%M:%S''')}] [STARTING...] Server is starting...\n")
+            self.output(valueOutput)
 
             self.server.listen()
 
-            self.log.write(f"[{datetime.now().strftime('''%H:%M:%S''')}] [LISTENING] Server is listening on {self.SERVER}:{self.PORT}\n")
-            self.log.flush()
-            self.entryLog.append(f"[{datetime.now().strftime('''%H:%M:%S''')}] [LISTENING] Server is listening on {self.SERVER}:{self.PORT}")
-            print(f"[{datetime.now().strftime('''%H:%M:%S''')}] [LISTENING] Server is listening on {self.SERVER}:{self.PORT}")
+            valueOutput = (f"[{datetime.now().strftime('''%H:%M:%S''')}] [LISTENING] Server is listening on {self.SERVER}:{self.PORT}\n")
+            self.output(valueOutput)
 
             while self.serverIsRunning:
                 conn, addr = self.server.accept()
@@ -263,10 +242,8 @@ class newServer:
 
                 self.activeClients += 1
                 self.maxActiveClients += 1
-                self.log.write(f"[{datetime.now().strftime('''%H:%M:%S''')}] [CONNECTING] {addr} Active connections = {self.activeClients}\n")
-                self.log.flush()
-                self.entryLog.append(f"[{datetime.now().strftime('''%H:%M:%S''')}] [CONNECTING] {addr} Active connections = {self.activeClients}")
-                print(f"[{datetime.now().strftime('''%H:%M:%S''')}] [CONNECTING] {addr} Active connections = {self.activeClients}")
+                valueOutput = (f"[{datetime.now().strftime('''%H:%M:%S''')}] [CONNECTING] {addr} Active connections = {self.activeClients}\n")
+                self.output(valueOutput)
         except:
             pass
 
@@ -293,16 +270,13 @@ class newServer:
             if self.clientId.get(clientIP) == True:
                 self.clientId[clientIP] = False
                 self.activeClients -= 1
-                self.log.write(f"[{datetime.now().strftime('''%H:%M:%S''')}] [DISCONNECTED] {clientIP} Disconnected by server. Active connections = {self.activeClients}\n")
-                self.log.flush()
-                self.entryLog.append(f"[{datetime.now().strftime('''%H:%M:%S''')}] [DISCONNECTED] {clientIP} Disconnected by server. Active connections = {self.activeClients}")
-                print(f"[{datetime.now().strftime('''%H:%M:%S''')}] [DISCONNECTED] {clientIP} Disconnected by server. Active connections = {self.activeClients}")
+                valueOutput = (f"[{datetime.now().strftime('''%H:%M:%S''')}] [DISCONNECTED] {clientIP} Disconnected by server. Active connections = {self.activeClients}\n")
+                self.output(valueOutput)
+
                 time.sleep(1)
 
         self.clientList = []
 
         self.server.close()
-        self.log.write(f"[{datetime.now().strftime('''%H:%M:%S''')}] [CLOSING...]\n")
-        self.log.flush()
-        self.entryLog.append(f"[{datetime.now().strftime('''%H:%M:%S''')}] [CLOSING...]")
-        print(f"[{datetime.now().strftime('''%H:%M:%S''')}] [CLOSING...]")
+        valueOutput = (f"[{datetime.now().strftime('''%H:%M:%S''')}] [CLOSING...]\n")
+        self.output(valueOutput)

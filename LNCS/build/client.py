@@ -1,12 +1,9 @@
+import os
 import time
 import socket
-import os.path
-import os
 import threading
 from os import system as cmd
 from datetime import datetime
-
-from icecream import ic
 
 class newClient:
     HEADER = 64
@@ -39,7 +36,13 @@ class newClient:
 
     def __init__(self):
         cmd('cls')
-    
+
+    def output(self, value):
+        self.log.write(value + "\n")
+        self.log.flush()
+        self.entryLog.append(value)
+        print(value)
+
     def __rewriteLine__(self, file, lineKey, newLine):
         currentFile = open(file, "r")
         listAllLines = currentFile.readlines()
@@ -63,20 +66,15 @@ class newClient:
         self.__rewriteLine__(self.dataValues, self.listAllIndex[1], f"log-client-{__SERVER__}.{__PORT__}.txt")
         
         self.entryLog = self.log.readlines()
-        self.log.write(f"[{datetime.now().strftime('''%H:%M:%S''')}] [STARING...] Client starting on {self.SERVER}:{self.PORT}\n")
-        self.log.flush()
-        self.entryLog.append(f"[{datetime.now().strftime('''%H:%M:%S''')}] [STARING...] Client starting on {self.SERVER}:{self.PORT}")
-        print(f"[{datetime.now().strftime('''%H:%M:%S''')}] [STARING...] Client starting on {self.SERVER}:{self.PORT}")
+        valueOutput = (f"[{datetime.now().strftime('''%H:%M:%S''')}] [STARING...] Client starting on {self.SERVER}:{self.PORT}")
+        self.output(valueOutput)
 
     def connect(self):
         try:
             self.client.connect(self.ADDR)
             
-            self.log.write(f"[{datetime.now().strftime('''%H:%M:%S''')}] [CONNECTING...] Connected to {self.SERVER}:{self.PORT}...\n")
-            self.log.flush()
-            print(3)
-            self.entryLog.append(f"[{datetime.now().strftime('''%H:%M:%S''')}] [CONNECTING...] Connected to {self.SERVER}:{self.PORT}...")
-            print(f"[{datetime.now().strftime('''%H:%M:%S''')}] [CONNECTING...] Connected to {self.SERVER}:{self.PORT}...")
+            valueOutput = (f"[{datetime.now().strftime('''%H:%M:%S''')}] [CONNECTING...] Connected to {self.SERVER}:{self.PORT}...")
+            self.output(valueOutput)
 
             sendThread = threading.Thread(target = self.__sendThread__, args = (), daemon = True)
             sendThread.start()
@@ -100,24 +98,18 @@ class newClient:
 
             checkConnection.start()
         except:
-            self.log.write(f"[{datetime.now().strftime('''%H:%M:%S''')}] [CONNECTING...] Can't connect to {self.SERVER}:{self.PORT}...\n")
-            self.log.flush()
-            self.entryLog.append(f"[{datetime.now().strftime('''%H:%M:%S''')}] [CONNECTING...] Can't connect to {self.SERVER}:{self.PORT}...")
-            print(f"[{datetime.now().strftime('''%H:%M:%S''')}] [CONNECTING...] Can't connect to {self.SERVER}:{self.PORT}...")
+            valueOutput = (f"[{datetime.now().strftime('''%H:%M:%S''')}] [CONNECTING...] Can't connect to {self.SERVER}:{self.PORT}...")
+            self.output(valueOutput)
 
     def disconnect(self):
         self.send__(self.DISCONNECT_MESSAGE, msgKey=self.DISCONNECT_MESSAGE)
-        self.log.write(f"[{datetime.now().strftime('''%H:%M:%S''')}] [DISCONNECTED] {self.ADDR} Disconnected by client.\n")
-        self.log.flush()
-        self.entryLog(f"[{datetime.now().strftime('''%H:%M:%S''')}] [DISCONNECTED] {self.ADDR} Disconnected by client.")
-        print(f"[{datetime.now().strftime('''%H:%M:%S''')}] [DISCONNECTED] {self.ADDR} Disconnected by client.")
+        valueOutput = (f"[{datetime.now().strftime('''%H:%M:%S''')}] [DISCONNECTED] {self.ADDR} Disconnected by client.")
+        self.output(valueOutput)
     
     def close(self):
         self.client.close()
-        self.log.write(f"[{datetime.now().strftime('''%H:%M:%S''')}] [CLOSING...]\n")
-        self.log.flush()
-        self.entryLog.append(f"[{datetime.now().strftime('''%H:%M:%S''')}] [CLOSING...]")
-        print(f"[{datetime.now().strftime('''%H:%M:%S''')}] [CLOSING...]")
+        valueOutput = (f"[{datetime.now().strftime('''%H:%M:%S''')}] [CLOSING...]")
+        self.output(valueOutput)
 
     def send(self, msgValue, msgKey = "[TEXT]"):
         self.sendMessageList.append([msgValue, msgKey])
@@ -158,17 +150,13 @@ class newClient:
                                 f.write(data)
                                 length -= len(data)
                             else:
-                                print(f"[{datetime.now().strftime('''%H:%M:%S''')}] [FILE] File {filename} received successfully.")
-                                self.log.write(f"[{datetime.now().strftime('''%H:%M:%S''')}] [FILE] File {filename} received successfully.")
-                                self.log.flush()
-                                self.entryLog.append(f"[{datetime.now().strftime('''%H:%M:%S''')}] [FILE] File {filename} received successfully.")
+                                valueOutput = (f"[{datetime.now().strftime('''%H:%M:%S''')}] [FILE] File {filename} received successfully.")
+                                self.output(valueOutput)
                                 key = not key
                                 continue
 
-                        print(f"[{datetime.now().strftime('''%H:%M:%S''')}] [FILE] {filename} Error occurred while file receiving.")
-                        self.log.write(f"[{datetime.now().strftime('''%H:%M:%S''')}] [FILE] {filename} Error occurred while file receiving.")
-                        self.log.flush()
-                        self.entryLog.append(f"[{datetime.now().strftime('''%H:%M:%S''')}] [FILE] {filename} Error occurred while file receiving.")
+                        valueOutput = (f"[{datetime.now().strftime('''%H:%M:%S''')}] [FILE] {filename} Error occurred while file receiving.")
+                        self.output(valueOutput)
                         break
             except:
                 pass
@@ -178,10 +166,9 @@ class newClient:
             msg = msgKey + " --> " + msgValue
 
             if msgValue != self.CHECK_CONNECTION_MESSAGE and msgKey != self.GET_CLIENT_NAME and msgKey != self.CHECK_CONNECTION_MESSAGE and msgKey != self.GET_PORT_MESSAGE:
-                self.log.write(f"[{datetime.now().strftime('''%H:%M:%S''')}] {msg}\n")
-                self.log.flush()
-                self.entryLog.append(f"[{datetime.now().strftime('''%H:%M:%S''')}] {msg}")
-                print(f"[{datetime.now().strftime('''%H:%M:%S''')}] {msg}")
+                valueOutput = (f"[{datetime.now().strftime('''%H:%M:%S''')}] {msg}")
+                self.output(valueOutput)
+
             message = msg.encode(self.FORMAT)
             msg_length = len(message)
             send_length = str(msg_length).encode(self.FORMAT)
@@ -193,10 +180,8 @@ class newClient:
             serverAnsw = self.client.recv(1024).decode(self.FORMAT)
 
             if serverAnsw != "NONE" and serverAnsw != self.CHECK_CONNECTION_MESSAGE and msgKey != self.GET_PORT_MESSAGE:
-                self.log.write(f"[{datetime.now().strftime('''%H:%M:%S''')}] {serverAnsw}\n")
-                self.log.flush()
-                self.entryLog.append(f"[{datetime.now().strftime('''%H:%M:%S''')}] {serverAnsw}")
-                print(f"[{datetime.now().strftime('''%H:%M:%S''')}] {serverAnsw}")
+                valueOutput = (f"[{datetime.now().strftime('''%H:%M:%S''')}] [SERVER ANSWER] {serverAnsw}")
+                self.output(valueOutput)
         
             return serverAnsw
     
@@ -207,20 +192,16 @@ class newClient:
                     self.send__(msgValue = self.CHECK_CONNECTION_MESSAGE, msgKey = self.CHECK_CONNECTION_MESSAGE)
                 except:
                     self.clientIsConnected = False
-                    self.log.write(f"[{datetime.now().strftime('''%H:%M:%S''')}] [DISCONNECTED] {self.ADDR} Server don't respond.\n")
-                    self.log.flush()
-                    self.entryLog.append(f"[{datetime.now().strftime('''%H:%M:%S''')}] [DISCONNECTED] {self.ADDR} Server don't respond.]")
-                    print(f"[{datetime.now().strftime('''%H:%M:%S''')}] [DISCONNECTED] {self.ADDR} Server don't respond.")
+                    valueOutput = (f"[{datetime.now().strftime('''%H:%M:%S''')}] [DISCONNECTED] {self.ADDR} Server don't respond.")
+                    self.output(valueOutput)
             else:
                 self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
                 try:
                     self.client.connect(self.ADDR)
                     self.clientIsConnected = True
-                    self.log.write(f"[{datetime.now().strftime('''%H:%M:%S''')}] [CONNECTING...] Connected to {self.SERVER}:{self.PORT}...\n")
-                    self.log.flush()
-                    self.entryLog.append(f"[{datetime.now().strftime('''%H:%M:%S''')}] [CONNECTING...] Connected to {self.SERVER}:{self.PORT}...")
-                    print(f"[{datetime.now().strftime('''%H:%M:%S''')}] [CONNECTING...] Connected to {self.SERVER}:{self.PORT}...")
+                    valueOutput = (f"[{datetime.now().strftime('''%H:%M:%S''')}] [CONNECTING...] Connected to {self.SERVER}:{self.PORT}...")
+                    self.output(valueOutput)
                     self.PORT_FOR_FILES = self.send__(msgKey = self.GET_PORT_MESSAGE, msgValue = self.GET_PORT_MESSAGE)
                     recieveFolderThread = threading.Thread(target = self.__recieveFolder__, args = (self.ADDR[0], self.PORT_FOR_FILES, self.folderToSave), daemon = True)
                     recieveFolderThread.start()
@@ -230,9 +211,8 @@ class newClient:
                         pass
           
                 except:
-                    self.log.write(f"[{datetime.now().strftime('''%H:%M:%S''')}] [CONNECTING...] Can't connect to {self.SERVER}:{self.PORT}...\n")
-                    self.log.flush()
-                    self.entryLog.append(f"[{datetime.now().strftime('''%H:%M:%S''')}] [CONNECTING...] Can't connect to {self.SERVER}:{self.PORT}...")
-                    print(f"[{datetime.now().strftime('''%H:%M:%S''')}] [CONNECTING...] Can't connect to {self.SERVER}:{self.PORT}...")
+                    valueOutput = (f"[{datetime.now().strftime('''%H:%M:%S''')}] [CONNECTING...] Can't connect to {self.SERVER}:{self.PORT}...")
+                    self.output(valueOutput)
+
 
             time.sleep(0.1)
