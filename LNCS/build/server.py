@@ -72,7 +72,7 @@ class newServer:
                 valueOutput = (f'''[{datetime.now().strftime("%H:%M:%S")}] [ERROR] File sending failed. Client "{client}" isn't connected.\n''')
                 self.output(valueOutput)
         else:
-            if checkIPV4(client):
+            if self.checkIPV4(client):
                 valueOutput = (f'''[{datetime.now().strftime("%H:%M:%S")}] [ERROR] File sending failed. Incorrect ip "{client}" or client isn't connected.''')
                 self.output(valueOutput)
             else:
