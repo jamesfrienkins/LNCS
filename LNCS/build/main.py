@@ -216,10 +216,10 @@ def systemStatusClient():
 
 
 def main(startConnectionStatus = False):
-    cmd(f"mkdir {currentPath}\cashe")
-    cmd(f"attrib +h {currentPath}\cashe")
-    cmd(f"mkdir {currentPath}\data")
-    cmd(f"attrib +h {currentPath}\data")
+    cmd(f'''mkdir "{currentPath}\cashe"''')
+    cmd(f'''attrib +h "{currentPath}\cashe"''')
+    cmd(f'''mkdir "{currentPath}\data"''')
+    cmd(f'''attrib +h "{currentPath}\data"''')
 
     systemStatus = setUpCurrentSystemStatus()
 
