@@ -9,13 +9,14 @@ from os import system as cmd
 from datetime import datetime
 from os import startfile, path
 
-cmd('clr')
+cmd('cls')
 
 currentSystemIPV4 = socket.gethostbyname(socket.gethostname())
 listAllIndex = ["[CURRENT_SESSION_KEY]", "[CURRENT_CLIENT_LOG]", "[CURRENT_SERVER_LOG]", "[CURRENT_SYSTEM_STATUS]", "[SERVER_PORT]", "[SYSTEM_IPV4]", "[SYSTEM_NAME]", "[SAVE_FILE_LOCATION]"]
 currentPath = path.dirname(path.realpath(__file__))
 IPV4, PORT, SYSTEM_NAME = None, None, None
 dataValues = f"{currentPath}\data\data_values.txt"
+print(currentPath)
 SAVE_FILE_LOCATION = ""
 client, server = None, None
 serverDataToSend = None
@@ -127,7 +128,7 @@ def setUpCurrentSystemStatus():
                 else:
                     cmd('cls')
             except:
-                cmd('clr')
+                cmd('cls')
 
         rewriteLine(dataValues, listAllIndex[3], systemStatus)
         setUpKey = True
@@ -148,7 +149,7 @@ def setUpCurrentSystemStatus():
                     if int(PORT) >= 55000 and int(PORT) <= 70000:
                         setUpKey = False
             except:
-                cmd('clr')
+                cmd('cls')
 
         rewriteLine(dataValues, listAllIndex[3], systemStatus)
         
@@ -162,7 +163,7 @@ def setUpCurrentSystemStatus():
                     if SYSTEM_NAME[0] not in string.digits:
                         setUpKey = False
                 except:
-                    cmd('clr')
+                    cmd('cls')
 
             setUpKey = True
             while setUpKey:
@@ -173,7 +174,7 @@ def setUpCurrentSystemStatus():
                     if path.isdir(SAVE_FILE_LOCATION):
                         setUpKey = False
                 except:
-                    cmd('clr')
+                    cmd('cls')
         
         rewriteLine(dataValues, listAllIndex[4], PORT)
         rewriteLine(dataValues, listAllIndex[5], IPV4)
