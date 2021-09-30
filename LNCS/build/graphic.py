@@ -1,63 +1,83 @@
 import PySimpleGUI as sg
-from time import sleep
+import threading
+import wmi as __wni__
+
+
 
 class interface:
-    sg.theme('Dark Blue 3')
+    wni = __wni__.WMI()
 
-    display_current_connections_layout = []
-    send_files_layout = []
-    receive_folder_lauout = []
+    def fill(self, string, n = 20, symbol = " "):
+        n = max(len(string), n) - len(string)
 
-    def receive_files(self, info_folder_receive = {}):
-        self.receive_folder_layout.append([sg.Text(' Address '), sg.Text(' Computer name ')])
+        string += symbol * n
 
-        keys = list(info_folder_receive.keys())
+        return string
 
-        if info_folder_receive != {}:
-            for key in keys:
-                data = info_folder_receive.get(key)
+    def current_running_apps(self, full_list = True):
+        if full_list:
+            self.running_apps = []
 
-                addr, name, folder_to_receive = data
-                    
-                self.receive_folder_layout.append([sg.Text(addr), sg.Text(name), sg.Button('Receive'), sg.Button('Dismiss')])
-                self.receive_folder_layout.append([sg.Text(folder_to_receive)])
+            for process in self.wni.Win32_Process():
+            
+                self.running_apps.append([f"{process.ProcessId:<10}", f"{process.Name}"])
+            
+    def __init__(self):
+        self.running_apps = []
 
-    def current_connections(self, info = {}):
-        self.display_current_connections_layout.append([sg.Text(' Address '), sg.Text(' Computer name '), sg.Text(' Status '), sg.Text(' Time connected ')])
+        if True:
+            self.ip = '192.168.0.1'
+            self.port = '55555'
+            self.dataset = [['addr1', 'name1', 'status1', 'time1'], ['addr2', 'name2', 'status2', 'time2']]
+            self.connected_client = ['pc1', 'pc2']
+            self.clientList = {}
 
-        keys = list(info.keys())
+        self.file_manager_layout = []
 
-        if info != {}:
-            for key in keys:
-                data = info.get(key)
-                addr, name, status, time_conn = data
+        self.current_connections_layout = [
+        [sg.Text(self.fill('Address')), sg.Text(self.fill('Name')), sg.Text(self.fill('Status')), sg.Text(self.fill("Time connected"))],
+        [sg.Text('')]
+        ]
 
-                self.display_current_connections_layout.append([sg.Text(addr), sg.Text(name), sg.Text(status), sg.Text(time_conn)])
+        self.current_running_apps_layout = [
+        [sg.Text('Computer: '), sg.Combo(self.connected_client, enable_events=True, key = 'selected_pc_running_tasks'), sg.Text('        Full apps list: '), sg.Checkbox('', key = 'full_app_list')]
+        ]
 
-    def send_file(self, info = []):
-        self.send_files_layout.append([sg.Text('Browse folder:'), sg.FolderBrowse(key = 'browse_folder'), sg.Button('Add', key = 'add_folder')])
-        self.send_files_layout.append([sg.Text('Browse file:'), sg.FileBrowse(key = 'browse_file'), sg.Button('Add', key = 'add_file')])
-        self.send_files_layout.append([sg.Text('')])
-        self.send_files_layout.append([sg.Text('   Address '), sg.Text(' Computer name ')])
+        for data in self.dataset:
+            addr, name, stat, tmcn = data
 
-        if info != []:
-            for row in info:
-                for data in row:
-                    addr, name, _, _ = data
+            row = [sg.Text(self.fill(addr), key = f'addr:{addr}'), sg.Text('  ' + self.fill(name), key = f'name:{addr}'), sg.Text(self.fill(stat), key = f'stat:{addr}'), sg.Text(self.fill(tmcn), key = f'tmcn:{addr}')]
 
-                    self.send_files_layout.append(sg.Checkbox(key = addr), sg.Text(addr), sg.Text(name))
+            if self.clientList.get(addr) == None:
+                self.clientList[addr] = True
 
+            self.current_connections_layout.append(row)
+
+        self.layout = [
+        [sg.Text(f'Current server address: {self.ip}:{self.port}')],
+        [sg.TabGroup(   [[sg.Tab('Connections', self.current_connections_layout), sg.Tab('File manager', self.file_manager_layout), sg.Tab('Running apps', self.current_running_apps_layout)]]   )]
+        ]
+    
+        self.window = sg.Window('LNCS', self.layout)
+
+    def __run_window__(self):
+        while True:
+            event, values = self.window.read(timeout = 20)
+
+            if event == sg.WIN_CLOSED:
+                break
 
     def start(self):
-        layout = [[sg.Text(f('Server address {self.addr[0]}:{self.addr[1]}))],
-[sg.TabGroup([[sg.Tab('Connections', self.display_current_connections_layout), sg.Tab('File manager', self.send_files_layout)]])]]
-        window = sg.Window('LNCS', layout)
-        window.read()
-        window.close()
+        try:
+            RUN = threading.Thread(target = self.__run_window__, args = (), daemon = True)
+            RUN.start()
+
+            while True:
+                pass
+        except KeyboardInterrupt:
+            pass
+
+
 
 window = interface()
-
-window.send_file()
-window.current_connections()
-
-window.start()
+window.__run_window__()
