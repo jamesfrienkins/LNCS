@@ -2,6 +2,7 @@ import os
 import time
 import socket
 import threading
+import wmi as __wmi__
 from os import system as cmd
 from datetime import datetime
 
@@ -42,6 +43,14 @@ class newClient:
         self.log.flush()
         self.entryLog.append(value)
         print(value)
+
+    def current_running_apps(self, full_list = True):
+        if full_list:
+            self.running_apps = []
+
+            for process in self.wni.Win32_Process():
+            
+                self.running_apps.append([f"{process.ProcessId:<10}", f"{process.Name}"])
 
     def __rewriteLine__(self, file, lineKey, newLine):
         currentFile = open(file, "r")
