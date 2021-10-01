@@ -2,7 +2,7 @@ import os
 import time
 import socket
 import threading
-import wmi as __wmi__
+import stream_client
 from os import system as cmd
 from datetime import datetime
 
@@ -16,6 +16,8 @@ class newClient:
     GET_CLIENT_NAME = "[GET_CLIENT_NAME]"
     CMD_MESSAGE = "[CMD]"
     TEXT_MESSAGE = "[TEXT]"
+    START_STREAM = "[START_STREAM]"
+    GET_STREAM_PORT = "[GET_STREAM_PORT]"
     client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     SERVER = socket.gethostbyname(socket.gethostname())
     listAllIndex = ["[CURRENT_SESSION_KEY]", "[CURRENT_CLIENT_LOG]", "[CURRENT_SERVER_LOG]", "[CURRENT_SYSTEM_STATUS]", "[SERVER_PORT]", "[SYSTEM_IPV4], [SYSTEM_NAME]"]
@@ -25,6 +27,7 @@ class newClient:
     CHUNKSIZE = 1000000
     PORT_FOR_FILES = ""
     folderToSave = ""
+    STREAM_PORT = ""
     PORT = 55000
     ADDR = (SERVER, PORT)
     log = ""
@@ -43,14 +46,6 @@ class newClient:
         self.log.flush()
         self.entryLog.append(value)
         print(value)
-
-    def current_running_apps(self, full_list = True):
-        if full_list:
-            self.running_apps = []
-
-            for process in self.wni.Win32_Process():
-            
-                self.running_apps.append([f"{process.ProcessId:<10}", f"{process.Name}"])
 
     def __rewriteLine__(self, file, lineKey, newLine):
         currentFile = open(file, "r")
@@ -89,11 +84,18 @@ class newClient:
             sendThread.start()
 
             self.clientIsConnected = True
-            
+
             try:
                 self.PORT_FOR_FILES = self.send__(msgKey = self.GET_PORT_MESSAGE, msgValue = self.GET_PORT_MESSAGE)
             except:
                 pass
+
+            try:
+                self.STREAM_PORT = self.send__(msgKey = self.GET_STREAM_PORT, msgValue = self.GET_STREAM_PORT)
+            except:
+                pass
+
+            self.stream = stream_client.__stream__(self.ADDR[0], int(self.STREAM_PORT))
 
             recieveFolderThread = threading.Thread(target = self.__recieveFolder__, args = (self.ADDR[0], self.PORT_FOR_FILES, self.folderToSave), daemon = True)
             recieveFolderThread.start()
@@ -132,7 +134,6 @@ class newClient:
 
     def __recieveFolder__(self, ip, port, pathToSave):
         key = False
-        print(1)
         while self.clientIsConnected:
             if key == False:
                 sock = socket.socket()
@@ -174,7 +175,7 @@ class newClient:
         if self.clientIsConnected:
             msg = msgKey + " --> " + msgValue
 
-            if msgValue != self.CHECK_CONNECTION_MESSAGE and msgKey != self.GET_CLIENT_NAME and msgKey != self.CHECK_CONNECTION_MESSAGE and msgKey != self.GET_PORT_MESSAGE:
+            if msgKey not in (self.CHECK_CONNECTION_MESSAGE, self.GET_CLIENT_NAME, self.CHECK_CONNECTION_MESSAGE, self.GET_PORT_MESSAGE, self.GET_STREAM_PORT):
                 valueOutput = (f"[{datetime.now().strftime('''%H:%M:%S''')}] {msg}")
                 self.output(valueOutput)
 
@@ -186,9 +187,9 @@ class newClient:
             self.client.send(message)
 
             serverAnsw = "NONE"
-            serverAnsw = self.client.recv(1024).decode(self.FORMAT)
+            serverAnsw = str(self.client.recv(1024).decode(self.FORMAT))
 
-            if serverAnsw != "NONE" and serverAnsw != self.CHECK_CONNECTION_MESSAGE and msgKey != self.GET_PORT_MESSAGE:
+            if serverAnsw != "NONE" and serverAnsw != self.CHECK_CONNECTION_MESSAGE and serverAnsw != self.START_STREAM and msgKey != self.CHECK_CONNECTION_MESSAGE and msgKey != self.GET_PORT_MESSAGE and msgKey != self.GET_STREAM_PORT:
                 valueOutput = (f"[{datetime.now().strftime('''%H:%M:%S''')}] [SERVER ANSWER] {serverAnsw}")
                 self.output(valueOutput)
         
@@ -198,12 +199,20 @@ class newClient:
         while True:
             if self.clientIsConnected:
                 try:
-                    self.send__(msgValue = self.CHECK_CONNECTION_MESSAGE, msgKey = self.CHECK_CONNECTION_MESSAGE)
+                    answ = self.send__(msgValue = self.CHECK_CONNECTION_MESSAGE, msgKey = self.CHECK_CONNECTION_MESSAGE)
+
+                    if answ != self.CHECK_CONNECTION_MESSAGE:
+                        self.stream.start()
                 except:
                     self.clientIsConnected = False
                     valueOutput = (f"[{datetime.now().strftime('''%H:%M:%S''')}] [DISCONNECTED] {self.ADDR} Server don't respond.")
                     self.output(valueOutput)
             else:
+                try:
+                    self.stream.close()
+                except:
+                    pass
+
                 self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
                 try:
@@ -214,14 +223,14 @@ class newClient:
                     self.PORT_FOR_FILES = self.send__(msgKey = self.GET_PORT_MESSAGE, msgValue = self.GET_PORT_MESSAGE)
                     recieveFolderThread = threading.Thread(target = self.__recieveFolder__, args = (self.ADDR[0], self.PORT_FOR_FILES, self.folderToSave), daemon = True)
                     recieveFolderThread.start()
+
                     try:
                         self.send__(msgKey = self.GET_CLIENT_NAME, msgValue = self.SYSTEM_NAME)
                     except:
                         pass
-          
+
                 except:
                     valueOutput = (f"[{datetime.now().strftime('''%H:%M:%S''')}] [CONNECTING...] Can't connect to {self.SERVER}:{self.PORT}...")
                     self.output(valueOutput)
-
 
             time.sleep(0.1)

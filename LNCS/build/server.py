@@ -3,6 +3,7 @@ import socket
 import os.path
 import threading
 from os import walk
+import stream_server
 from os import system as cmd
 from datetime import datetime
 
@@ -18,9 +19,13 @@ class newServer:
     CHECK_CONNECTION_MESSAGE  = "[CHECK_CONNECTION]"
     GET_CLIENT_NAME = "[GET_CLIENT_NAME]"
     TEXT_MESSAGE = "[TEXT]"
+    GET_STREAM_PORT = "[GET_STREAM_PORT]"
+    START_STREAM = "[START_STREAM]"
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     listAllIndex = ["[CURRENT_SESSION_KEY]", "[CURRENT_CLIENT_LOG]", "[CURRENT_SERVER_LOG]", "[CURRENT_SYSTEM_STATUS]", "[SERVER_PORT]", "[SYSTEM_IPV4], [SYSTEM_NAME]"]
     clientPortNameForFiles = {}
+    activateClientStream = {}
+    clientLiveStream = {}
     pathToTarget = {}
     clientIpPort = {}
     
@@ -31,8 +36,8 @@ class newServer:
     clientConnections = {}
 
     listFilesToSend = []
-    entryLog = []
     clientList = []
+    entryLog = []
     clientId = {}
 
     serverIsRunning = False
@@ -51,6 +56,9 @@ class newServer:
             return True
         except socket.error:
             return False
+
+    def startStream(self, ip):
+        self.activateClientStream[ip] = True
 
     def sendFolder(self, pathToFolders, client):        
         k = True
@@ -87,8 +95,6 @@ class newServer:
         sock.listen()
 
         sock.settimeout(0.5)
-
-        print(clntAddr)
 
         self.pathToTarget[addr] = []
         k = f"{addr[0]}.{str(addr[1])}"
@@ -159,7 +165,11 @@ class newServer:
         clientInfo = [None, None, None, None]
         self.clientId[f"{addr[0]}.{addr[1]}"] = True
         self.clientPortNameForFiles[addr] = (self.PORT + self.maxActiveClients + 1)
+        self.clientLiveStream[addr] = (self.PORT - self.maxActiveClients - 1)
         connected = True
+
+        self.stream = stream_server.__stream__(self.clientLiveStream.get(addr))
+        self.stream.start()
 
         timeStart = time.time()
 
@@ -187,22 +197,28 @@ class newServer:
                         conn.send("NONE".encode(self.FORMAT))
                     elif msgKey == self.GET_PORT_MESSAGE:
                         conn.send(str(self.clientPortNameForFiles.get(addr)).encode(self.FORMAT))
+                    elif msgKey == self.GET_STREAM_PORT:
+                        conn.send(str(self.clientLiveStream.get(addr)).encode('utf-8'))
                     elif msgKey == self.CHECK_CONNECTION_MESSAGE:
-                        conn.send(str(self.CHECK_CONNECTION_MESSAGE).encode(self.FORMAT))
+                        if self.activateClientStream.get(addr[0]):
+                            conn.send(str(self.START_STREAM).encode(self.FORMAT))
+                            self.activateClientStream[addr[0]] = False
+                        else:
+                            conn.send(str(self.CHECK_CONNECTION_MESSAGE).encode(self.FORMAT))
                     elif msgKey == self.GET_CLIENT_NAME:
                         clientInfo[1] = msgValue
                     elif msgKey == self.TEXT_MESSAGE:
-                        valueOutput = (f"[{datetime.now().strftime('''%H:%M:%S''')}] [MESSAGE] {addr} {msgValue}\n")
+                        valueOutput = (f"[{datetime.now().strftime('''%H:%M:%S''')}] [MESSAGE] {addr} {msgValue}")
                         self.output(valueOutput)
                         conn.send("NONE".encode(self.FORMAT))
                     else:
-                        valueOutput = (f"[{datetime.now().strftime('''%H:%M:%S''')}] [MESSAGE] {addr} {msgKey} {msgValue}\n")
+                        valueOutput = (f"[{datetime.now().strftime('''%H:%M:%S''')}] [MESSAGE] {addr} {msgKey} {msgValue}")
                         self.output(valueOutput)
                         conn.send("NONE".encode(self.FORMAT))
         except:
             connected = False
             clientInfo[2] = self.__updateClientStatus__(connected)
-            valueOutput = (f"[{datetime.now().strftime('''%H:%M:%S''')}] [DISCONNECTED] {addr} Client don't respond. Active connections = {self.activeClients - 1}\n")
+            valueOutput = (f"[{datetime.now().strftime('''%H:%M:%S''')}] [DISCONNECTED] {addr} Client don't respond. Active connections = {self.activeClients - 1}")
             self.output(valueOutput)
 
         try:
@@ -219,7 +235,7 @@ class newServer:
             if connected:
                 connected = False
                 
-                valueOutput = (f"[{datetime.now().strftime('''%H:%M:%S''')}] [DISCONNECTED] {addr} Disconnected by client. Active connections = {self.activeClients}\n")
+                valueOutput = (f"[{datetime.now().strftime('''%H:%M:%S''')}] [DISCONNECTED] {addr} Disconnected by client. Active connections = {self.activeClients}")
                 self.output(valueOutput)
 
     def __start__(self):
@@ -229,7 +245,7 @@ class newServer:
 
             self.server.listen()
 
-            valueOutput = (f"[{datetime.now().strftime('''%H:%M:%S''')}] [LISTENING] Server is listening on {self.SERVER}:{self.PORT}\n")
+            valueOutput = (f"[{datetime.now().strftime('''%H:%M:%S''')}] [LISTENING] Server is listening on {self.SERVER}:{self.PORT}")
             self.output(valueOutput)
 
             while self.serverIsRunning:
@@ -242,7 +258,7 @@ class newServer:
 
                 self.activeClients += 1
                 self.maxActiveClients += 1
-                valueOutput = (f"[{datetime.now().strftime('''%H:%M:%S''')}] [CONNECTING] {addr} Active connections = {self.activeClients}\n")
+                valueOutput = (f"[{datetime.now().strftime('''%H:%M:%S''')}] [CONNECTING] {addr} Active connections = {self.activeClients}")
                 self.output(valueOutput)
         except:
             pass
@@ -250,7 +266,7 @@ class newServer:
     def start(self):
         self.server.bind(self.ADDR)
         self.serverIsRunning = True
-
+        
         self.log = open(f"{self.currentPath}\data\log-server-{self.SERVER}.{self.PORT}.txt", 'a+')
 
         self.__rewriteLine__(self.dataValues, self.listAllIndex[2], f"{self.currentPath}\log-server-{self.SERVER}.{self.PORT}.txt")
@@ -270,7 +286,7 @@ class newServer:
             if self.clientId.get(clientIP) == True:
                 self.clientId[clientIP] = False
                 self.activeClients -= 1
-                valueOutput = (f"[{datetime.now().strftime('''%H:%M:%S''')}] [DISCONNECTED] {clientIP} Disconnected by server. Active connections = {self.activeClients}\n")
+                valueOutput = (f"[{datetime.now().strftime('''%H:%M:%S''')}] [DISCONNECTED] {clientIP} Disconnected by server. Active connections = {self.activeClients}")
                 self.output(valueOutput)
 
                 time.sleep(1)

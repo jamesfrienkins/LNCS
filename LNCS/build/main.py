@@ -139,14 +139,14 @@ def setUpCurrentSystemStatus():
                 print("Set up your system...\n\n")
                 print(f"Current system ipv4: {currentSystemIPV4}")
                 if systemStatus == 'client':
-                    IPV4, PORT = input("Enter server addres IPV4, PORT(55000 ≈ 70000) in format (IPV4:PORT): ").split(':')
-                    if checkIPV4(IPV4) and int(PORT) >= 55000 and int(PORT) <= 70000:
+                    IPV4, PORT = input("Enter server addres IPV4, PORT(55000 ≈ 65000) in format (IPV4:PORT): ").split(':')
+                    if checkIPV4(IPV4) and int(PORT) >= 55000 and int(PORT) <= 65000:
                         setUpKey = False
                 elif systemStatus == 'admin':
-                    PORT = input("Enter PORT (55000 ≈ 70000): ")
+                    PORT = input("Enter PORT (55000 ≈ 65000): ")
                     IPV4 = currentSystemIPV4
                     
-                    if int(PORT) >= 55000 and int(PORT) <= 70000:
+                    if int(PORT) >= 55000 and int(PORT) <= 65000:
                         setUpKey = False
             except:
                 cmd('cls')
@@ -196,6 +196,9 @@ def systemStatusAdmin():
     gsd.start()
     ssd.start()
 
+    time.sleep(5)
+    server.startStream('192.168.0.232')
+
     time.sleep(120)
 
 def systemStatusClient():
@@ -213,7 +216,6 @@ def systemStatusClient():
     client.send('Msg3 delay 10 sec')
     time.sleep(10)
     client.send('Msg4 delay 10 sec')   
-
 
 def main(startConnectionStatus = False):
     cmd(f'''mkdir "{currentPath}\cashe"''')
