@@ -1,6 +1,5 @@
 from time import sleep
 import PySimpleGUI as sg
-import socket
 import threading
 import wmi as __wni__
 
@@ -26,8 +25,6 @@ class interface:
         return string
             
     def __init__(self):
-        self.running_apps = []
-
         if True:
             self.ip = '192.168.0.1'
             self.port = '55555'
@@ -39,9 +36,14 @@ class interface:
             self.clientList_request_display = {}     # in this dictionary there are info about displaying clients that wait to send file to server (only display info) (ip):(binary value)
             self.receive_request = {}                # in this dictionary there are info about in format: (ip):([location_1, location_2])
             self.client_addr_name = {}               # in this dictionary there are info about ip addresses and names of clients in format (ip):(name)
-
+            self.stream_is_running = {}              # in this dictionary there are info about what stream are going
+    
             self.dataset = [['192.168.0.7', 'Personal pc 1', 'Connected', '163.7 sec'], ['192.168.0.9', 'Personal pc 2', 'Connected', '85.3 sec'], ['192.168.0.5', 'Personal pc 3', 'Connected', '27.1 sec']]
             self.receive_request = {'addr1':['list1'], 'addr2':['list2']}
+            self.running_apps = []
+
+            resolution_list = ['960 × 540', '1280 × 720','1920 × 1080 (recomended)', '3840 × 2160']
+            fps_list = ['1x', '2x', '4x (recomended)', '8x', '16x (not recomended)']
 
             for data in self.dataset:
                 self.client_addr_name[data[0]] = data[1]
@@ -50,14 +52,15 @@ class interface:
                     self.connected_client.append(data[0])
 
         self.client_actions_layout = [
-        [sg.Text('Computer: '), sg.Combo(self.connected_client, enable_events = True, key = 'selected_client_actions'), sg.Button('Get actions', key = 'get_client_actions')]
+        [sg.Text(self.fill('Address')), sg.Text(self.fill('Name'))]
         ]
+
         self.receive_file_layout = [
-        [sg.Text(self.fill('Address')), sg.Text('Name')]
+        [sg.Text(self.fill('Address')), sg.Text(self.fill('Name'))]
         ]
 
         self.send_file_layout = [
-        [sg.Text(self.fill('Address')), sg.Text('Name')]
+        [sg.Text(self.fill('Address')), sg.Text(self.fill('Name'))]
         ]
 
         self.current_connections_layout = [
@@ -66,7 +69,7 @@ class interface:
         ]
 
         self.current_running_apps_layout = [
-        [sg.Text('Computer: '), sg.Combo(self.connected_client, enable_events = True, key = 'selected_pc_running_tasks'), sg.Button('Get info', key = 'get_client_running_apps'), sg.Text('Full apps list: '), sg.Checkbox('', key = 'full_app_list')]
+        [sg.Text('Computer: '), sg.Combo(self.connected_client, enable_events = True, readonly = True, key = 'selected_pc_running_tasks<:>'), sg.Button('Get info', key = 'get_client_running_apps<:>'), sg.Text('Full apps list: '), sg.Checkbox('', key = 'full_app_list<:>')]
         ]
 
         for data in self.dataset:               # displaying current connections
@@ -102,28 +105,28 @@ class interface:
 
             row1 = [sg.Text(self.fill(clnt)), sg.Text(self.fill(self.client_addr_name.get(clnt))), sg.Text(''), sg.FolderBrowse('Select folder', key = f'select_folder<:>{clnt}'), sg.FileBrowse('Select file', key = f'select_file<:>{clnt}')]
             row2 = [sg.Text('Folder/file: '), sg.Text(file_to_send, key = f'file_location_send<:>{clnt}')]
+            row3 = [sg.Text('')]
 
             self.clientList_send_display[clnt] = True
 
             self.send_file_layout.append(row1)
             self.send_file_layout.append(row2)
-        
-        self.current_running_apps()
-    
+            self.send_file_layout.append(row3)
+
+            row1 = [sg.Combo(resolution_list, default_value = resolution_list[2], readonly = True, key = f'resolution_list<:>{clnt}'), sg.Combo(fps_list, default_value = fps_list[2], readonly = True, key = f'fps_list<:>{clnt}'), sg.Button('Start Stream', key = f'start_stream<:>{clnt}')]
+            row2 = [sg.Button('Shutdown', key = f'shutdown<:>{clnt}'), sg.Button('Restart', key = f'restart<:>{clnt}')]
+            row3 = [sg.Text('')]
+
+            self.client_actions_layout.append(row1)
+            self.client_actions_layout.append(row2)
+            self.client_actions_layout.append(row3)
+            
         row = [sg.Listbox(values = self.running_apps, size = (840, 555))]
 
         self.current_running_apps_layout.append(row)
 
-        print(self.running_apps)
-
-
         self.file_manager_layout = [
-        [sg.TabGroup([[sg.Tab('Send file', self.send_file_layout), sg.Tab('Receive file', self.receive_file_layout)]],size = (860, 570), key = 'current_file_tab')]
-        ]
-
-        self.layout = [
-        [sg.Text(f'Current server address: {self.ip}:{self.port}')],
-        [sg.TabGroup([[sg.Tab('Connections', self.current_connections_layout), sg.Tab('File manager', self.file_manager_layout), sg.Tab('Running apps', self.current_running_apps_layout), sg.Tab('Actions', self.client_actions_layout)]], size = (880, 585), key = 'current_main_tab')]
+        [sg.TabGroup([[sg.Tab('Send file', self.send_file_layout), sg.Tab('Receive file', self.receive_file_layout)]],size = (860, 570), key = 'current_file_tab<:>')]
         ]
     
     def update_values(self, dataset_ = None, receive_request_ = None):
@@ -152,39 +155,73 @@ class interface:
         except:
             pass
 
-    def start(self):
-        self.window = sg.Window('LNCS', self.layout, size = (900, 600), finalize = True)
+    def help_menu(self):
+        self.help_layout = [
+        [sg.Text('Help menu:')]
+        ]
+
+        return sg.Window('Help', self.help_layout, size = (500, 300), finalize = True)
+
+    def about_menu(self):
+        self.about_layout = [
+        [sg.Text('About menu:')]
+        ]
+
+        return sg.Window('About', self.about_layout, size = (500, 300), finalize = True)
+
+    def main_menu(self):
+        layout = [
+        [sg.Text(f'Current server address: {self.ip}:{self.port}' + ' ' * 130), sg.Button('Help', key = 'help<:>'), sg.Button('About', key = 'about<:>')],
+        [sg.TabGroup([[sg.Tab('Connections', self.current_connections_layout), sg.Tab('File manager', self.file_manager_layout), sg.Tab('Running apps', self.current_running_apps_layout), sg.Tab('Actions', self.client_actions_layout)]], size = (880, 585), key = 'current_main_tab<:>')]
+        ]
+
+        return sg.Window('LNCS', layout, size = (900, 550), finalize = True)
+
+    def start(self):        
+        self.window, self.window_help, self.window_about = self.main_menu(), None, None
 
         RUN = threading.Thread(target = self.main, args = (), daemon = True)
 
         run_main = False
 
         while True:
+            if not run_main:
+                RUN.start()
+                run_main = True
+            
             if self.keyExit:
                 exit()
 
             self.event, self.values = self.window.read(timeout = 200)
 
-            if not run_main:
-                RUN.start()
-                run_main = True
-
-            if self.event == sg.WIN_CLOSED:
+            if self.event == '__TIMEOUT__':
+                continue
+            elif self.event == sg.WIN_CLOSED:
                 break
+
+            key, clnt = str(self.event).split('<:>')
+
+            if key == 'start_stream':
+                if self.stream_is_running.get(clnt) == False or self.stream_is_running.get(clnt) == None:
+                    self.window[f'start_stream<:>{clnt}'].update('Close Stream')
+                    self.stream_is_running[clnt] = True
+                else:
+                    self.window[f'start_stream<:>{clnt}'].update('Start Stream')
+                    self.stream_is_running[clnt] = False
+            elif key == 'help':
+                self.about_menu()
+            elif key == 'about':
+                self.help_menu()
 
     def main(self):
         try:
-            t = 0
             while True:
                 if self.keyExit:
                     exit()
-                t += 0.1
-                # self.update_values(dataset_=[['addr1', 'name1', 'status1', str(t)], ['addr2', 'name2', 'status2', str(t)]])
-                # self.update_window()
                 sleep(0.1)
         except KeyboardInterrupt:
+            self.keyExit = True
             exit()
-
 
 if __name__ == '__main__':
     window = interface()
