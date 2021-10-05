@@ -1,25 +1,29 @@
 from time import sleep
 import PySimpleGUI as sg
 import threading
-from win32com.client import CLSIDToClass
 import wmi as __wni__
 
 
 class interface:
     wni = __wni__.WMI()
     keyExit = False
-    # window = ''
 
     def lang(self, key):
         dictionary_lang = {
         0 : ['recomended', 'рекомендовано'], 1 : ['not recomended', 'не рекомендовано'], 2 : ['Addr', 'Адреса'], 3 : ['Name', "Ім'я"], 4 : ['Status', 'Статус'], 5 : ['Time connnected', 'Час підключення'],
         6 : [f'''Current server address: {self.ip}:{self.port} {' ' * 104} ''', f'''Адреса даного сервера: {self.ip}:{self.port} {' ' * 85} '''], 7 : ['Connections', 'Підключення'], 8 : ['File manager', 'Файловий менеджер'],
         9 : ['Running apps', 'Запущені програми'], 10 : ['Actions', 'Дії'], 11 : ['Help', 'Довідник'], 12 : ['About', 'Інформація'], 13 : ['Folder/file;', 'Папка/файл:'], 14 : ['Select file', 'Вибрати файл'], 15 : ['Select folder', 'Вибрати папку'],
-        16 : ['Receive files', 'Отримати файли'], 17 : ['Send files', 'Надіслати файли']}
+        16 : ['Receive files', 'Отримати файли'], 17 : ['Send files', 'Надіслати файли'], 18 : ['Start stream', 'Почати стрім'], 19 : ['Shutdown', 'Виключити'], 20 : ['Restart', 'Перезапуск'], 21 : ['Computer', "Комп'ютер"],
+        22 : ['Get info: ', 'Отримати дані'], 23 : ['Full app list: ', 'Повний список програм: ']
+        }
         if self.clang == 'English':
-            return dictionary_lang.get(key)[0]
+            v = dictionary_lang.get(key)[0]
         elif self.clang == 'Ukrainian':
-            return dictionary_lang.get(key)[1]
+            v = dictionary_lang.get(key)[1]
+        if v == None:
+            return 'Value Error!'
+        else:
+            return v
     
     def change_lang(self):
         self.window['addr_1<:>'].update(self.fill(self.lang(2)))
@@ -40,6 +44,8 @@ class interface:
         self.window['tab_file<:>'].update(self.lang(8))
         self.window['tab_apps<:>'].update(self.lang(9))
         self.window['tab_act<:>'].update(self.lang(10))
+        self.window['win_help<:>'].update(self.lang(11))
+        self.window['win_about<:>'].update(self.lang(12))
         self.window['help<:>'].update(self.lang(11))
         self.window['about<:>'].update(self.lang(12))
 
@@ -48,9 +54,16 @@ class interface:
 
             self.window[f'select_file<:>{clnt}'].update(self.lang(14))
             self.window[f'select_folder<:>{clnt}'].update(self.lang(15))
+            self.window[f'restart<:>'].update(self.lang(19))
+            self.window[f'shutdown<:>'].update(self.lang(20))
+            self.window[f'start_stream<:>'].update(self.lang(18))
 
         self.window['receive_file_1<:>'].update(self.lang(16))
         self.window['send_file_1<:>'].update(self.lang(17))
+
+        self.window['computer_<:>'].update(self.lang(21))
+        self.window['get_client_running_apps<:>'].update(self.lang(22))
+        self.window['full_app_list<:>'].update(self.lang(23))
 
     def current_running_apps(self, full_list = True):
         if full_list:
@@ -114,7 +127,7 @@ class interface:
         ]
 
         self.current_running_apps_layout = [
-        [sg.Text('Computer: '), sg.Combo(self.connected_client, enable_events = True, readonly = True, key = 'selected_pc_running_tasks<:>'), sg.Button('Get info', key = 'get_client_running_apps<:>'), sg.Text('Full apps list: '), sg.Checkbox('', key = 'full_app_list<:>')]
+        [sg.Text(f'{self.lang(21)}: ', key = 'computer_<:>'), sg.Combo(self.connected_client, enable_events = True, readonly = True, key = 'selected_pc_running_tasks<:>'), sg.Button(self.lang(22), key = 'get_client_running_apps<:>'), sg.Text(self.lang(23)), sg.Checkbox('', key = 'full_app_list<:>')]
         ]
 
         for data in self.dataset:               # displaying current connections
@@ -158,8 +171,8 @@ class interface:
             self.send_file_layout.append(row2)
             self.send_file_layout.append(row3)
 
-            row1 = [sg.Combo(resolution_list, default_value = resolution_list[2], readonly = True, key = f'resolution_list<:>{clnt}'), sg.Combo(fps_list, default_value = fps_list[2], readonly = True, key = f'fps_list<:>{clnt}'), sg.Button('Start Stream', key = f'start_stream<:>{clnt}')]
-            row2 = [sg.Button('Shutdown', key = f'shutdown<:>{clnt}'), sg.Button('Restart', key = f'restart<:>{clnt}')]
+            row1 = [sg.Combo(resolution_list, default_value = resolution_list[2], readonly = True, key = f'resolution_list<:>{clnt}'), sg.Combo(fps_list, default_value = fps_list[2], readonly = True, key = f'fps_list<:>{clnt}'), sg.Button(self.lang(18), key = f'start_stream<:>{clnt}')]
+            row2 = [sg.Button(self.lang(19) key = f'shutdown<:>{clnt}'), sg.Button(self.lang(20), key = f'restart<:>{clnt}')]
             row3 = [sg.Text('')]
 
             self.client_actions_layout.append(row1)
@@ -206,7 +219,7 @@ class interface:
         [sg.Multiline('')]
         ]
 
-        return sg.Window('Help', self.help_layout, size = (500, 300), finalize = True)
+        return sg.Window(self.lang(11), self.help_layout, size = (500, 300), finalize = True, key = 'win_help<:>')
 
     def about_menu(self):
         self.about_layout = [
@@ -217,7 +230,7 @@ class interface:
         [sg.Text('Created by Safiyanyk Volodymyr.')]
         ]
 
-        return sg.Window('About', self.about_layout, size = (400, 240), finalize = True)
+        return sg.Window(self.lang(12), self.about_layout, size = (400, 240), finalize = True, key = 'win_about<:>')
 
     def main_menu(self):
         layout = [
